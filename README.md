@@ -31,7 +31,7 @@
    Features:
     - A debug print function (hexprint).
     - Utility and math defines like exp(x), sz(x), and roundu/d(x).
-    - Xorshift random number generator with __?POSIX_TIME?__ as it's seed.
+    - Xorshift random number generator with __?POSIX_TIME?__ as its seed.
     - Checksum 2-pass accumulator.
     - CRC32 2-pass accumlator (proud of this one).
    ```
