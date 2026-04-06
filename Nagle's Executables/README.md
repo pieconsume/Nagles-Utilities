@@ -4,11 +4,12 @@
   A mostly finished ELF64 generator supporting imports and imports.
 
   Known issues / caveats:
-  
-   - GNU_HASH is implemented in a bare-minimum fashion, making symbol searches inefficient.
-   - An extra 2 null symbols are added to fix a strange export edgecase bug. I just want to know why.
-   - Macros are incomprehensible and don't make use of nasm 3.0 features.
-   - Needs tested on more devices. May have obscure compatibility issues.
+  ```
+  - GNU_HASH is implemented in a bare-minimum fashion, making symbol searches inefficient.
+  - An extra 2 null symbols are added to fix a strange export edgecase bug. I just want to know why.
+  - Macros are incomprehensible and don't make use of nasm 3.0 features.
+  - Needs tested on more devices. May have obscure compatibility issues.
+  ```
 
   Files:
   ```
@@ -23,9 +24,10 @@
   Works on wine last year's builds did not run on real windows machines.
 
   Known issues / caveats:
-
-   - Has not ran on real windows machine since a test years ago. Likely just incorrect header values.
-   - Macros are incomprehensible and don't make use of nasm 3.0 features.
+  ```
+  - Has not ran on real windows machine since a test years ago. Likely just incorrect header values.
+  - Macros are incomprehensible and don't make use of nasm 3.0 features.
+  ```
 
   Files:
   ```
