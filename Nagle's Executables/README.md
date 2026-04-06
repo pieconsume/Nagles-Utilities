@@ -40,7 +40,7 @@
  ## Compat
   Tests all the features of PEGen.asm, ELFGen.asm, and ExeUtils.asm.
 
-  ### Dumpcalls (registers dumping onto the stack)
+  ### Dumpcalls (parameters dumping onto the stack)
    C calls with more than 4 parameters require specific handling due to ABI differences.  
    The h0q-h1q registers mean that d00-d01 are either dumped onto stack (Windows) or in registers (SystemV).  
    Additionally on Windows stack passed values begin at rsp+0x20, whereas on SystemV they begin at rsp+0x00.  
