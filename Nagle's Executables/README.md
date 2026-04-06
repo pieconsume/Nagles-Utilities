@@ -72,3 +72,8 @@
    - d00-d01 Stack dump values. Either h0q-h1q, or on the stack.
    - d02-d31 Stack dump values, always on the stack.
  ```
+
+ ```
+ Known issues / caveats:
+  - Suffers the same lack of testing of everything I've written, now multiplied by two operating systems.
+ ```
