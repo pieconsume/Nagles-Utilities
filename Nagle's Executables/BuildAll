@@ -1,0 +1,9 @@
+cd "ELF"
+./Build
+cd ..
+cd "PE"
+./Build
+cd ..
+cd "Compat"
+./Build
+cd ..

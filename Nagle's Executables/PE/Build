@@ -1,0 +1,8 @@
+cp "src/PEGen.asm" "../../PEGen.asm"
+nasm "src/PETest.asm"       -o "builds/PETest.exe"
+nasm "src/PETest.asm" -ddll -o "builds/PETest.dll"
+gendef - "builds/PETest.dll" > "builds/PETest.def"
+x86_64-w64-mingw32-dlltool -d "builds/PETest.def" -l "builds/PETest.lib" -m i386:x86-64
+x86_64-w64-mingw32-gcc "src/LibTest.c" -L ./builds -l "PETest" -Wl,-rpath,'$ORIGIN' -o "builds/LibTest"
+wine "builds/PETest.exe"
+wine "builds/LibTest.exe"

@@ -1,0 +1,5 @@
+nasm "src/Compat.asm" -dplatform=win64 -w-label-redef-late -o "builds/CompatPE.exe"
+nasm "src/Compat.asm" -dplatform=linux -w-label-redef-late -o "builds/CompatELF"
+wine "builds/CompatPE.exe" testArg
+chmod +x "builds/CompatELF"
+./"builds/CompatELF" testArg

@@ -1,0 +1,7 @@
+cp "src/ELFGen.asm" "../../ELFGen.asm"
+nasm "src/ELFTest.asm" -w-label-redef-late -o "builds/ELFTest"
+nasm "src/ELFTest.asm" -w-label-redef-late -o "builds/libELFTest.so"
+chmod +x "builds/ELFTest"
+./"builds/ELFTest"
+clang "src/LibTest.c" -L ./builds -l "ELFTest" -Wl,-rpath,'$ORIGIN' -o "builds/LibTest"
+./"builds/LibTest"
