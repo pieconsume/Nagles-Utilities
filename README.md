@@ -1,8 +1,6 @@
 # Nagle's Utilities
  The current scope of the project is to generate various doodads using nasm's powerful sorcery (macros).  
- However eventually (once the executable generators are stable) I plan to write some asm versions.  
- So first a version to maximize transparency in how something works at a binary level.  
- Then a more practical command line tool to do effectively the same thing.  
+ However eventually (once the executable generators are stable) I plan to write some asm programs.  
 
  ## Nagle's Executables
   Magically (nasm macro) generated ELF and PE executable files.  
