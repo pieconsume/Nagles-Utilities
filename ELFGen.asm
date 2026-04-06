@@ -193,6 +193,7 @@ imports:
    %endrep
   ;Note - Potential edgecase fix where the final import isn't used causing the chain to never end.
   ;Note - Testing this case didn't cause any issues, but it's probably better here than not.
+  ;Note - Could be fixed fairly easily but I don't care much.
   dd -1
   gnu_hash.end:
   align 0x08, db 0
@@ -215,7 +216,6 @@ imports:
   %assign idx 0
   %rep funcs
   fn_used fn%[idx]
-  ;%warning fn%[idx]_str
   %tok(fn%[idx]_str) dq 0
   %endif
   %assign idx idx+1
