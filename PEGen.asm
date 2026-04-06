@@ -109,7 +109,7 @@ imports:
    ;0x20000000 Exec
    ;0x40000000 Read
    ;0x80000000 Write
-  ;       Name,    Sect, VirtSize Flags
+  ;       Name,    Sect, VirtSize                 Flags
   sectent ".text", code, roundu(sz(code),0x1000), 0x20000000
   sectent ".data", data, roundu(sz(data),0x1000), 0xC0000000
   sectent ".tabs", tabs, roundu(sz(tabs),0x1000), 0xC0000000

@@ -5,135 +5,76 @@
  %define abis 0x02
  %define safe 0x03
  ;Pass registers
+ %macro defset 5
+  %define %1q %2
+  %define %1d %3
+  %define %1w %4
+  %define %1b %5
+  %endmacro
  %ifidn platform, win64
-  %define p0q rcx
-  %define p1q rdx
-  %define p2q r8
-  %define p3q r9
-  %define p4q qword [rsp+0x20]
-  %define p5q qword [rsp+0x28]
-  %define p6q qword [rsp+0x30]
-  %define p7q qword [rsp+0x38]
-  %define p8q qword [rsp+0x40]
-  %define p9q qword [rsp+0x48]
-  %define r0q rax
-  %define p0d ecx
-  %define p1d edx
-  %define p2d r8d
-  %define p3d r9d
-  %define r0d eax
-  %define p0w cx
-  %define p1w dx
-  %define p2w r8w
-  %define p3w r9w
-  %define r0w ax
-  %define p0b cl
-  %define p1b dl
-  %define p2b r8b
-  %define p3b r9b
-  %define r0b al
-  %define pf0 xmm0
-  %define pf1 xmm1
-  %define pf2 xmm2
-  %define pf3 xmm3
-  %define s0q rbx
-  %define s1q rbp
-  %define s2q r12
-  %define s3q r13
-  %define s4q r14
-  %define s5q r15
-  %define s0d ebx
-  %define s1d ebp
-  %define s2d r12d
-  %define s3d r13d
-  %define s4d r14d
-  %define s5d r15d
-  %define s0w bx
-  %define s1w bp
-  %define s2w r12w
-  %define s3w r13w
-  %define s4w r14w
-  %define s5w r15w
-  %define s0b bl
-  %define s1b bpl
-  %define s2b r12b
-  %define s3b r13b
-  %define s4b r14b
-  %define s5b r15b
-  %define u0q r10
-  %define u1q r11
-  %define u0d r10d
-  %define u1d r11d
-  %define u0w r10w
-  %define u1w r11w
-  %define u0b r10b
-  %define u1b r11b
+  defset  s0, rbx,ebx, bx,  bl   ;Saved0
+  defset  s1, rbp,ebp, bp,  bpl  ;Saved1
+  defset  s2, r12,r12d,r12w,r12b ;Saved2
+  defset  s3, r13,r13d,r13w,r13b ;Saved3
+  defset  s4, r14,r14d,r14w,r14b ;Saved4
+  defset  s5, r15,r15d,r15w,r15b ;Saved5
+  defset  p0, rcx,ecx, cx,  cl   ;Pass0
+  defset  p1, rdx,edx, dx,  dl   ;Pass1
+  defset  p2, r8, r8d, r8w, r8b  ;Pass2
+  defset  p3, r9, r9d, r9w, r9b  ;Pass3
+  defset  u0, r10,r10d,r10w,r10b ;Unused0
+  defset  u1, r11,r11d,r11w,r11b ;Unused1
+  defset  h0, rdi,edi, di,  dil  ;Headache0
+  defset  h1, rsi,esi, si,  sil  ;Headache1
+  defset  r0, rax,eax, ax,  al   ;Return0
+  %define pf0 xmm0               ;Passfloat0
+  %define pf1 xmm1               ;Passfloat1
+  %define pf2 xmm2               ;Passfloat2
+  %define pf3 xmm3               ;Passfloat3
+  ;Define long pass values up to 32 for convenience
+  %define idx 0
+  %rep 10 ;l00-l09
+   %define l0%[idx] [rsp+(0x20+(0x08*idx))]
+   %assign idx idx+1
+   %endrep
+  %rep 22 ;l10-l31
+   %define l%[idx] [rsp+(0x20+(0x08*idx))]
+   %assign idx idx+1
+   %endrep
   %endif
  %ifidn platform, linux
-  %define p0q rdi
-  %define p1q rsi
-  %define p2q rdx
-  %define p3q rcx
-  %define p4q r8
-  %define p5q r9
-  %define p6q qword[rsp+0x00]
-  %define p7q qword[rsp+0x08]
-  %define p8q qword[rsp+0x10]
-  %define p9q qword[rsp+0x18]
-  %define r0q rax
-  %define p0d edi
-  %define p1d esi
-  %define p2d edx
-  %define p3d ecx
-  %define p4d r8d
-  %define p5d r9d
-  %define r0d eax
-  %define p0w di
-  %define p1w si
-  %define p2w dx
-  %define p3w cx
-  %define r0w ax
-  %define p0b dil
-  %define p1b sil
-  %define p2b dl
-  %define p3b cl
-  %define r0b al
-  %define pf0 xmm0
-  %define pf1 xmm1
-  %define pf2 xmm2
-  %define pf3 xmm3
-  %define s0q rbx
-  %define s1q rbp
-  %define s2q r12
-  %define s3q r13
-  %define s4q r14
-  %define s5q r15
-  %define s0d ebx
-  %define s1d ebp
-  %define s2d r12d
-  %define s3d r13d
-  %define s4d r14d
-  %define s5d r15d
-  %define s0w bx
-  %define s1w bp
-  %define s2w r12w
-  %define s3w r13w
-  %define s4w r14w
-  %define s5w r15w
-  %define s0b bl
-  %define s1b bpl
-  %define s2b r12b
-  %define s3b r13b
-  %define s4b r14b
-  %define s5b r15b
-  %define u0q r10
-  %define u1q r11
-  %define u0d r10d
-  %define u1d r11d
-  %define u0w r10w
-  %define u1w r11w
-  %define u0b r10b
-  %define u1b r11b
+  defset  s0, rbx,ebx, bx,  bl   ;Saved0
+  defset  s1, rbp,ebp, bp,  bpl  ;Saved1
+  defset  s2, r12,r12d,r12w,r12b ;Saved2
+  defset  s3, r13,r13d,r13w,r13b ;Saved3
+  defset  s4, r14,r14d,r14w,r14b ;Saved4
+  defset  s5, r15,r15d,r15w,r15b ;Saved5
+  defset  p0, rdi,edi, di,  dil  ;Pass0
+  defset  p1, rsi,esi, si,  sil  ;Pass1
+  defset  p2, rdx,edx, dx,  dl   ;Pass2
+  defset  p3, rcx,ecx, cx,  cl   ;Pass3
+  defset  u0, r10,r10d,r10w,r10b ;Unused0
+  defset  u1, r11,r11d,r11w,r11b ;Unused1
+  defset  h0, r8, r8d, r8w, r8b  ;Headache0
+  defset  h1, r9, r9d, r9w, r9b  ;Headache1
+  defset  r0, rax,eax, ax,  al   ;Return0
+  %define pf0 xmm0               ;Passfloat0
+  %define pf1 xmm1               ;Passfloat1
+  %define pf2 xmm2               ;Passfloat2
+  %define pf3 xmm3               ;Passfloat3
+  ;Define long pass values up to 32 for convenience
+  %define l00 r8                 ;XPass0 special case
+  %define l01 r9                 ;XPass1 special case
+  %define idx 2
+  ;Define extended pass values up to 32 for convenience
+  %rep 08 ;x02-x09
+   %define l0%[idx] [rsp+(0x08*(idx-2))]
+   %assign idx idx+1
+   %endrep
+  %rep 22 ;x10-x31
+   %define l%[idx] [rsp+(0x08*(idx-2))]
+   %assign idx idx+1
+   %endrep
   %endif
  %macro ccl 1
   ;Expects a bracketed parameter

@@ -33,8 +33,36 @@
   ```
   Known issues / caveats:
    - Has not ran on real windows machine since a test years ago. Likely just incorrect header values.
+   - The rdi and rsi registers have ceased to exist on windows.
    - Macros are incomprehensible and don't make use of nasm 3.0 features.
   ```
 
  ## Compat
   Tests all the features of PEGen.asm, ELFGen.asm, and ExeUtils.asm.
+
+  ###
+   C calls with more than 4 parameters (longcalls as I call them) require specific handling due to ABI differences.  
+   The h0q-h1q registers mean that l00-l01 are either on stack (Windows) or in registers (SystemV).  
+   Additionally on Windows stack passed values begin at rsp+0x20, whereas on SystemV they begin at rsp+0x00.  
+   To this day I have yet to find an good way to handle these differences. I'm open to suggestions.  
+   You can use l00-l31 for some degree of consistency if you can easily deal with the differences.  
+   Or use platform specific code to individually handle each case if it gets complicated.  
+
+   TL;DR Keep references to both ABIs handy at all times and be careful with longcalls doing odd things.
+
+  ```
+  Compatibility registers:
+   - s0q-s5q Saved    registers.
+   - p0q-p3q Pass     registers.
+   - u0q-u1q Unused   registers.
+   - h0q-h1q Headache registers. These would be s6q-s7q on Windows and p4q-p5q on SystemV.
+   - r0q     Return   register.
+   - rsp     Stack    register.
+   - l00-l01 Long pass values. Either h0q-h1q, or on the stack.
+   - l02-l31 Long pass values, always on the stack.
+ ```
+
+  ```
+  Known issues / caveats:
+   - Need to add longcall handling
+  ```
