@@ -318,7 +318,7 @@
     mov p0q,[s1q]       ;Output to  argv[n]
     lea p1q,[print_cnv] ;Convert the string
     mov p2q,[s1q]       ;Input from argv[n]
-    ccl [sprintf]      ;Convert string. UTF8 should always be smaller than LPWSTR
+    ccl [sprintf]       ;Convert string. UTF8 should always be smaller than LPWSTR
     add s1q,0x08        ;Advance to next pointer
     dec s0d             ;Decrement count
     jnz argv_gen

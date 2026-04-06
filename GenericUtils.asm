@@ -6,6 +6,7 @@
 %define genutils
 %defstr hexdef 0123456789ABCDEF
 %macro hexprint 1-3.nolist
+ ;Todo - can be simplified since nasm 3.0 added %hex()
  %assign hex0 ((%1>>0x00) % 16)
  %assign hex1 ((%1>>0x04) % 16)
  %assign hex2 ((%1>>0x08) % 16)
