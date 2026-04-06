@@ -6,7 +6,7 @@
   The current build system is linux-centric bash scripts that call nasm and whatever else I need.  
   A batch version will be made once I get a windows device to test on.  
   Beyond needing nasm v3.0+ some of the compilers in `Nagle's Executables` may need to be installed or swapped.  
-  Quickest path is running "./BuildAll" and seeing what warnings you get.  
+  Quickest path is running "./BuildAll" and seeing what errors you get.  
 
  ## Nagle's Executables
   Magically (nasm macro) generated ELF and PE executable files.  
