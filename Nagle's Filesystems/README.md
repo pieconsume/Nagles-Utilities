@@ -5,7 +5,7 @@
 
   Known issues / caveats:
   ```
-  - Only tested on one machine. No issues were reported by standard tools, but it may stil have obscure compatibility issues.
+  - Only tested on one machine. No issues were reported by standard tools, but it may still have obscure compatibility issues.
   - Settings are hardcoded instead of passed by command line.
   - Macros are incomprehensible and don't make use of nasm 3.0 features.
   ```
