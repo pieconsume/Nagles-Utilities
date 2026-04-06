@@ -102,7 +102,7 @@ code:
   div eax
   fnr abic
  fn test_exch,  leaf
-  and spl,0xF0  ;Better to use a temporary stack in real code
+  and spl,0xF0  ;Note - Better to use a temporary stack in real code
   debugprint Exceptions work
   ccl [exit]
  utilfunc:
