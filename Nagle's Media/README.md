@@ -1,7 +1,7 @@
 # Nagle's Media
  
  ## Gif
-  Example encoder/decoder for gifs using naive algorithms using nasm macros.
+  Example encoder/decoder for gifs using naive algorithms with nasm macros.
 
   ```
   Know issues / caveats:
