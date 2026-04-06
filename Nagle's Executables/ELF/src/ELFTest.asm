@@ -13,6 +13,7 @@ code:
   prog_init
   lea p0q,[test0]
   ccl [printf]
+  ccl [exit]
  fn testfunc, abic
   lea p0q,[test1]
   ccl [printf]
