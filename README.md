@@ -29,6 +29,7 @@
    Generic utilities used almost globally across subprojects.
 
    Features:
+   
     - A debug print function (hexprint).
 
     - Utility and math defines like exp(x), sz(x), and roundu/d(x).
@@ -43,6 +44,7 @@
    Cross-platform windows and linux compatibility macros used by any executable in the project.
 
    Features:
+   
     - Abstracted C ABI registers (p0q, s0q, r0q, u0q).
 
     - Conditional import call/mov (ccl, cmv). WIP.
@@ -54,7 +56,6 @@
     - Misc utility functions I like to use
 
    Compatibility packages
-   
     ```
     util_compat_stdc    - Get       stdin/out/err, errno.
     util_compat_cmdl    - Get       argc, argv.
