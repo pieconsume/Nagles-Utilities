@@ -49,8 +49,8 @@
 
    Compatibility packages:
    ```
-   util_compat_stdc    - Get       stdin/out/err, errno.
-   util_compat_cmdl    - Get       argc, argv.
+   util_compat_stdc    - Gets      stdin/out/err, errno.
+   util_compat_cmdl    - Gets      argc, argv.
    util_compat_threads - Macros    thr_make, thr_exit
    util_compat_sleep   - Macros    sleepms
    util_compat_time    - Functions util_timems, util_timeus
