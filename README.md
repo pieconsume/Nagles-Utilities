@@ -22,7 +22,7 @@
   CompatGen.asm    - Switch for ELFGen/PEGen based on input flags.
   ```
 
-  # GenericUtils
+  ### GenericUtils
    Generic utilities used almost globally across subprojects.
 
    Features:
@@ -32,7 +32,7 @@
     - Checksum 2-pass accumulator.
     - CRC32 2-pass accumlator (proud of this one).
 
-  # ExeUtils
+  ### ExeUtils
    Cross-platform windows and linux compatibility macros used by any executable in the project.
 
    Features:
