@@ -218,6 +218,16 @@
    ccl [closesocket]
    %endmacro
   %endmacro
+ %macro util_compat_exc     0
+  %define cpt_exc
+  addlib Kernel32.dll
+  import AddVectoredExceptionHandler, Kernel32.dll
+  %macro exc_handler 1
+   xor p0d,p0d
+   lea p1q,[%1]
+   ccl [AddVectoredExceptionHandler]
+   %endmacro
+  %endmacro
  %endif
 %ifidn platform, linux
  %macro util_compat_stdc    0
@@ -281,6 +291,48 @@
    ccl [close]
    %endmacro
   %endmacro
+ %macro util_compat_exc     0
+  %define cpt_exc
+  addlib libc.so.6
+  import sigaction
+  %macro exc_handler 1
+   ;Sigaction struct
+    ;0x00-0x07 Handler
+    ;0x08-0x87 Mask
+    ;0x88-0x8B Flags
+    ;0x8C-0x8F Padding? I forget
+    ;0x90-0x97 Restorer
+   ;Signums set
+    ;0x02 (0x0004) ;SIGINT
+    ;0x04 (0x0010) ;SIGILL
+    ;0x06 (0x0040) ;SIGABRT
+    ;0x08 (0x0100) ;SIGFPE
+    ;0x0B (0x0800) ;SIGSEGV
+    ;0x0F (0x8000) ;SIGTERM
+   sub rsp,0xA0             ;Mke stack space for the struct
+   xor r0d,r0d              ;Clr rax
+   mov p0q,rsp              ;Get mask ptr
+   mov p1d,0x13             ;Set 0x13 qwords (0x98 bytes)
+   %%clrloop:               ;Clr mask
+    mov [p0q],r0q ;Clr qword
+    add p0q,0x08  ;Adv ptr
+    dec p1d       ;Dec count
+    jnz %%clrloop ;Rpt
+   lea r0q,[%1]             ;Get exception handler
+   mov qword[rsp+0x00],r0q  ;Set handler
+   mov dword[rsp+0x88],0x04 ;Set flags
+   mov s0d,0x8954           ;Bitmask for desired signums
+   %%setsigs:
+    bsf p0d,s0d     ;Set signum
+    jz %%done       ;Ext if (bfs == 0)
+    mov p1q,rsp     ;Set sigaction struct
+    xor p2d,p2d     ;Clr sa_restore
+    ccl [sigaction] ;Run sigaction
+    blsr s0d,s0d    ;Clr lowest set bit
+    jmp %%setsigs   ;Rpt
+   %%done:
+   %endmacro
+  %endmacro
  %endif
 %macro util_compat_all  0
  util_compat_stdc
@@ -289,6 +341,7 @@
  util_compat_sleep
  util_compat_time
  util_compat_sock
+ util_compat_exc
  %endmacro
 ;Necessary program macros
 %ifidn platform, win64

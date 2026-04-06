@@ -31,6 +31,7 @@ imports:
   import fprintf, msvcr120.dll
   import printf,  msvcr120.dll
   import exit,    msvcr120.dll
+  import abort,   msvcr120.dll
  prog_head
 code:
  entry:
@@ -49,7 +50,7 @@ code:
   call test_sleep
   call test_time
   call test_sock
-  ccl [exit]
+  call test_exc
  fn test_abic,  abic
   debugprint ABIC works
   fnr abic
@@ -95,6 +96,15 @@ code:
   sock_init
   call util_printr0d
   fnr abic
+ fn test_exc,   abic
+  exc_handler test_exch
+  mov eax,0
+  div eax
+  fnr abic
+ fn test_exch,  leaf
+  and spl,0xF0  ;Better to use a temporary stack in real code
+  debugprint Exceptions work
+  ccl [exit]
  utilfunc:
   util_func_std
   util_func_compat
