@@ -33,16 +33,27 @@
   ```
   Known issues / caveats:
    - Has not ran on real windows machine since a test years ago. Likely just incorrect header values.
-   - The rdi and rsi registers have ceased to exist on windows.
    - Macros are incomprehensible and don't make use of nasm 3.0 features.
   ```
 
  ## Compat
   Tests all the features of PEGen.asm, ELFGen.asm, and ExeUtils.asm.
 
+  ### The stack does a lot of things (especially on windows) and has to be aligned.
+   You have to make sure the stack is just right before calling external functions.  
+   This is the reason for the fn and fnr macros, which do all the work for you.  
+   
+   ```
+   fn/fnr types:
+   leaf fn  - Does nothing. You cannot call external functions from these.
+   abic fn  - Initializes the stack for external C calls.
+   abis fn  - Saves s0q-s5q (and h0q-h1q on Windows) then initializes the stack.
+   safe fn  - Saves all general purpose registers (except rsp) then initializes the stack.
+   ```
+
   ### Dumpcalls (parameters dumping onto the stack)
    C calls with more than 4 parameters require specific handling due to ABI differences.  
-   The h0q-h1q registers mean that d00-d01 are either dumped onto stack (Windows) or in registers (SystemV).  
+   The headache registers mean that d00-d01 are either dumped onto stack (Windows) or in registers (SystemV).  
    Additionally on Windows stack passed values begin at rsp+0x20, whereas on SystemV they begin at rsp+0x00.  
    To this day I have yet to find an good way to handle these differences. I'm open to suggestions.  
    You can use d00-d31 for some degree of consistency if you can easily deal with the differences.  
@@ -61,8 +72,3 @@
    - d00-d01 Stack dump values. Either h0q-h1q, or on the stack.
    - d02-d31 Stack dump values, always on the stack.
  ```
-
-  ```
-  Known issues / caveats:
-   - Need to add longcall handling
-  ```

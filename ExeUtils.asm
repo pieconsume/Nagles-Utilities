@@ -415,6 +415,10 @@
 %macro util_func_std    0 ;Misc utility functions
  util_push_abi:
   mov  rax,[rsp]
+  %ifidn platform, win64
+  push h1q
+  push h0q
+  %endif
   push s5q
   push s4q
   push s3q
@@ -431,6 +435,10 @@
   pop s3q
   pop s4q
   pop s5q
+  %ifidn platform, win64
+  pop h0q
+  pop h1q
+  %endif
   ret
  util_push:
   xchg rax,[rsp]
