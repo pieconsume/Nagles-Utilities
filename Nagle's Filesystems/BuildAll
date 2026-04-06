@@ -1,0 +1,6 @@
+cd "Fat32"
+./Build
+cd ..
+cd "Ext2"
+./Build
+cd ..

@@ -1,0 +1,22 @@
+#Settings
+secsz=$((0x200))       #Sector size in bytes
+disksects=$((0x20000)) #Disk sectors
+fatsecs=$((0x18000))   #FAT  sectors
+fatspc=$((0x01))       #FAT  sectors per cluster
+
+#Generate the partitions
+nasm src/Fat32_BS.asm   -dsecsz=$secsz -ddisksects=$disksects -dfatsecs=$fatsecs -o builds/Fat32_BS   #Bootsector
+nasm src/Fat32_GPT.asm  -dsecsz=$secsz -ddisksects=$disksects -dfatsecs=$fatsecs -o builds/Fat32_GPT  #GUID Partition Table       (GPT)
+nasm src/Fat32_GPTB.asm -dsecsz=$secsz -ddisksects=$disksects -dfatsecs=$fatsecs -o builds/Fat32_GPTB #GPT Backup                 (GPTB)
+nasm src/Fat32_GPTE.asm -dsecsz=$secsz -ddisksects=$disksects -dfatsecs=$fatsecs -o builds/Fat32_GPTE #GPT Partition Entry Array  (GPTE)
+
+#Get file sizes
+filesize0=$(stat -c%s "src/ExampleFile.txt") #File size of the example file
+
+#Generate the full partitions and filesystem
+nasm src/Fat32_FS.asm -dsecs=$fatsecs -dbps=$secsz -dspc=$fatspc -dfile0sz=$filesize0 -dgpt -o builds/Fat32_FS
+
+#Note - If not generating partitions make sure to write the final sector of the disk.
+#Write the GPTE
+dd if=builds/Fat32_GPTE status=none of=builds/Fat32_FS bs=512 count=8 seek=$((disksects-9))           >/dev/null
+dd if=builds/Fat32_GPTB status=none of=builds/Fat32_FS bs=512 count=1 seek=$((disksects-1)) conv=sync >/dev/null

@@ -1,0 +1,4 @@
+#;Specific command usage below, then a folder and several files were created/added
+#;sudo dd if=/dev/zero of=TestFS bs=1024 count=16KiB
+#;sudo mkfs.ext4 TestFS
+
