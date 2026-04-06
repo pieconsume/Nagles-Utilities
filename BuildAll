@@ -1,9 +1,9 @@
 cd "Nagle's Executables"
 ./BuildAll
 cd ..
-cd "Nagle's FS Utils"
+cd "Nagle's Filesystems"
 ./BuildAll
 cd ..
-cd "Nagle's Media Utils"
+cd "Nagle's Media"
 ./BuildAll
 cd ..
