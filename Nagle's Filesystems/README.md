@@ -10,7 +10,7 @@
    - Macros are incomprehensible and don't make use of nasm 3.0 features.
   ```
 
- # Ext4
+ ## Ext4
   A generator intended to eventually support all ext4 features.  
   Currently just some formatted hexdumps of example ext4 filesystems.  
 
@@ -19,7 +19,7 @@
    - Doesn't do anything.
   ```
 
- # Fat32
+ ## Fat32
   A generator for a FAT32 filesystem.
 
   ```
@@ -38,10 +38,10 @@
    - Macros are surprisingly comprehensible, but don't make use of nasm 3.0 features.
   ```
 
- # NTFS
+ ## NTFS
   Not started. Don't expect anything anytime soon.
 
- # GUID partitions
+ ## GUID partitions
   A GUID partition table is currently only added to FAT32.  
   I plan to add it as a toggle for any filesystem using a single set of source files in the upper directory.  
   Fairly easy to do but I haven't gotten around to it yet.  
