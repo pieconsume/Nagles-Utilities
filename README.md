@@ -31,13 +31,9 @@
    Features:
    
     - A debug print function (hexprint).
-
     - Utility and math defines like exp(x), sz(x), and roundu/d(x).
-
     - Xorshift random number generator with __?POSIX_TIME?__ as it's seed.
-
     - Checksum 2-pass accumulator.
-
     - CRC32 2-pass accumlator (proud of this one).
 
   ### ExeUtils
@@ -46,13 +42,9 @@
    Features:
    
     - Abstracted C ABI registers (p0q, s0q, r0q, u0q).
-
     - Conditional import call/mov (ccl, cmv). WIP.
-
     - Abstracted C ABI program entry, call, and return (prog_init, fn, fnr).
-
     - Compatibility packages for common features
-
     - Misc utility functions I like to use
 
    Compatibility packages:
