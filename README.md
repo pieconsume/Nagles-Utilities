@@ -24,7 +24,8 @@
 
   ### GenericUtils
    Generic utilities used almost globally across subprojects.  
-   Features:  
+   Features:
+   
    ```
    - A debug print function (hexprint).
    - Utility and math defines like exp(x), sz(x), and roundu/d(x).
