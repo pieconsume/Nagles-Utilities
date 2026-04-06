@@ -40,15 +40,15 @@
  ## Compat
   Tests all the features of PEGen.asm, ELFGen.asm, and ExeUtils.asm.
 
-  ###
-   C calls with more than 4 parameters (longcalls as I call them) require specific handling due to ABI differences.  
-   The h0q-h1q registers mean that l00-l01 are either on stack (Windows) or in registers (SystemV).  
+  ### Dumpcalls (registers dumping onto the stack)
+   C calls with more than 4 parameters require specific handling due to ABI differences.  
+   The h0q-h1q registers mean that d00-d01 are either dumped onto stack (Windows) or in registers (SystemV).  
    Additionally on Windows stack passed values begin at rsp+0x20, whereas on SystemV they begin at rsp+0x00.  
    To this day I have yet to find an good way to handle these differences. I'm open to suggestions.  
-   You can use l00-l31 for some degree of consistency if you can easily deal with the differences.  
+   You can use d00-d31 for some degree of consistency if you can easily deal with the differences.  
    Or use platform specific code to individually handle each case if it gets complicated.  
 
-   TL;DR Keep references to both ABIs handy at all times and be careful with longcalls doing odd things.
+   TL;DR Keep references to both ABIs handy at all times and be careful with dumpcalls doing odd things.
 
   ```
   Compatibility registers:
@@ -58,8 +58,8 @@
    - h0q-h1q Headache registers. These would be s6q-s7q on Windows and p4q-p5q on SystemV.
    - r0q     Return   register.
    - rsp     Stack    register.
-   - l00-l01 Long pass values. Either h0q-h1q, or on the stack.
-   - l02-l31 Long pass values, always on the stack.
+   - d00-d01 Stack dump values. Either h0q-h1q, or on the stack.
+   - d02-d31 Stack dump values, always on the stack.
  ```
 
   ```

@@ -33,12 +33,12 @@
   %define pf3 xmm3               ;Passfloat3
   ;Define long pass values up to 32 for convenience
   %define idx 0
-  %rep 10 ;l00-l09
-   %define l0%[idx] [rsp+(0x20+(0x08*idx))]
+  %rep 10 ;d00-d09
+   %define d0%[idx] [rsp+(0x20+(0x08*idx))]
    %assign idx idx+1
    %endrep
-  %rep 22 ;l10-l31
-   %define l%[idx] [rsp+(0x20+(0x08*idx))]
+  %rep 22 ;d10-d31
+   %define d%[idx] [rsp+(0x20+(0x08*idx))]
    %assign idx idx+1
    %endrep
   %endif
@@ -63,16 +63,16 @@
   %define pf2 xmm2               ;Passfloat2
   %define pf3 xmm3               ;Passfloat3
   ;Define long pass values up to 32 for convenience
-  %define l00 r8                 ;XPass0 special case
-  %define l01 r9                 ;XPass1 special case
+  %define d00 r8                 ;DPass0 special case
+  %define d01 r9                 ;DPass1 special case
   %define idx 2
   ;Define extended pass values up to 32 for convenience
-  %rep 08 ;x02-x09
-   %define l0%[idx] [rsp+(0x08*(idx-2))]
+  %rep 08 ;d02-d09
+   %define d0%[idx] [rsp+(0x08*(idx-2))]
    %assign idx idx+1
    %endrep
-  %rep 22 ;x10-x31
-   %define l%[idx] [rsp+(0x08*(idx-2))]
+  %rep 22 ;d10-d31
+   %define d%[idx] [rsp+(0x08*(idx-2))]
    %assign idx idx+1
    %endrep
   %endif
