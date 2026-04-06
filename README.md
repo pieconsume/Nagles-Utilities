@@ -5,13 +5,16 @@
  Then a more practical command line tool to do effectively the same thing.  
 
  ## Nagle's Executables
-  Magically (nasm macro) generated ELF and PE executable files.
+  Magically (nasm macro) generated ELF and PE executable files.  
+  Navigate for more details.
 
  ## Nagle's Filesystems
   Magically (nasm macro) generated filesystems.
+  Navigate for more details.
 
  ## Nagle's Media
   Magically (nasm macro) generated media files.
+  Navigate for more details.
 
  ## Macro files
   ```

@@ -11,9 +11,8 @@
   ```
 
  # Ext4
-  A generator intended to eventually support all ext4 features.
-
-  Currently just some formatted hexdumps of example ext4 filesystems.
+  A generator intended to eventually support all ext4 features.  
+  Currently just some formatted hexdumps of example ext4 filesystems.  
 
   ```
   Known issues / caveats:
@@ -22,7 +21,6 @@
 
  # Fat32
   A generator for a FAT32 filesystem.
-
 
   ```
   Known issues / caveats:
