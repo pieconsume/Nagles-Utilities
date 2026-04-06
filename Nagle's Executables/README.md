@@ -19,9 +19,9 @@
   ```
 
  ## PE
-  A partially finished PE32+ generator supporting imports and exports.
+  A partially finished PE32+ generator supporting imports and exports.  
 
-  Works on wine last year's builds did not run on real windows machines.
+  Works on wine. Last year's builds did not run on real windows machines.  
 
   ```
   Files:
