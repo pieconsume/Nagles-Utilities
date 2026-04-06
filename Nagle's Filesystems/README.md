@@ -45,8 +45,6 @@
   Not started. Don't expect anything anytime soon.
 
  # GUID partitions
-  A GUID partition table is currently only added to FAT32.
-
-  I plan to add it as a toggle for any filesystem using a single set of source files in the upper directory.
-
-  Fairly easy to do but I haven't gotten around to it yet.
+  A GUID partition table is currently only added to FAT32.  
+  I plan to add it as a toggle for any filesystem using a single set of source files in the upper directory.  
+  Fairly easy to do but I haven't gotten around to it yet.  
