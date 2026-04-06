@@ -43,17 +43,17 @@
     - Abstracted C ABI registers (p0q, s0q, r0q, u0q).
     - Conditional import call/mov (ccl, cmv). WIP.
     - Abstracted C ABI program entry, call, and return (prog_init, fn, fnr).
-    - Compatibility packages for common features
-    - Misc utility functions I like to use
+    - Compatibility packages for common features.
+    - Misc utility functions I like to use.
    ```
 
    ```
    Compatibility packages:  
     util_compat_stdc    - Gets      stdin/out/err, errno.
     util_compat_cmdl    - Gets      argc, argv.
-    util_compat_threads - Macros    thr_make, thr_exit
-    util_compat_sleep   - Macros    sleepms
-    util_compat_time    - Functions util_timems, util_timeus
-    util_compat_sock    - Macros    sock_init, sock_close
-    util_compat_excs    - Macros    exc_handler
+    util_compat_threads - Macros    thr_make, thr_exit.
+    util_compat_sleep   - Macros    sleepms.
+    util_compat_time    - Functions util_timems, util_timeus.
+    util_compat_sock    - Macros    sock_init, sock_close.
+    util_compat_excs    - Macros    exc_handler.
    ```
