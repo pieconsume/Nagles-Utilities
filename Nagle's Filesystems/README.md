@@ -32,7 +32,6 @@
 
   ```
   Known issues / caveats:
-   - File sizes must be obtained by the run script and passed to the file. This is fixable but I haven't gotten around to it.
    - Doesn't support LFNs. This may be added in the future.
    - Option defines should have better names.
    - Macros are surprisingly comprehensible, but don't make use of nasm 3.0 features.
