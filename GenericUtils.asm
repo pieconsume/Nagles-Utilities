@@ -4,6 +4,13 @@
  %error GenericUtils.asm included twice!
  %endif
 %define genutils
+
+%define exp(x) x ;Force parameter expansion
+%define roundd(x, y) x - (x % y)
+%define roundu(x, y) x - (x % y) + (y * (x % y != 0))
+%define sz(x) (exp(x).end - x)
+%define sz(x,y) ((exp(x).end - x)/y)
+
 %defstr hexdef 0123456789ABCDEF
 %macro hexprint 1-3.nolist
  ;Todo - can be simplified since nasm 3.0 added %hex()
@@ -27,13 +34,20 @@
  %warning %2 final %3
  %endmacro
 
-%define exp(x) x ;Force parameter expansion
-%define roundd(x, y) x - (x % y)
-%define roundu(x, y) x - (x % y) + (y * (x % y != 0))
-%define sz(x) (exp(x).end - x)
-%define sz(x,y) (exp(x).end - x)/y
+%macro dh 1  ;Output raw MSB hex
+ %defstr hexstr %1
+ %strlen hexlen hexstr
+ %assign stridx 1
+ %rep hexlen/2
+  %substr hexbyte hexstr,stridx,2
+  %strcat hexcat  '0x',hexbyte
+  %deftok hextok  hexcat
+  db hextok
+  %assign stridx stridx+2
+  %endrep
+ %endmacro
 
-%macro ml 1+
+%macro ml 1+ ;Multiline macro (horizontal code)
  %push mac_ml
  %defstr %$str %1    ;Cnv greedy parameter to string
  %strlen %$len %$str ;Get length
@@ -164,6 +178,8 @@
  crc_ab %1, byte5
  crc_ab %1, byte6
  crc_ab %1, byte7
+ %endmacro
+%macro crc_ah 2
  %endmacro
 %macro crc_fin 1
  %assign crc_%1 ~crc_%1

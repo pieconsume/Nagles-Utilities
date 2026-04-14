@@ -1,5 +1,6 @@
 cd "Fat32"
 ./Build
+./BuildGPT
 cd ..
 cd "Ext2"
 ./Build

@@ -1,5 +1,6 @@
 #Create a loopfile then mount the first partition. Don't ctrl+c otherwise cleanup won't be done.
-loopfile=$(sudo losetup --find --partscan --show build/Fat32_FS)
+loopfile=$(sudo losetup --find --partscan --show builds/Fat32)
 sudo mount "${loopfile}p1" /media/MountTest
 read
 sudo umount /media/MountTest
+sudo losetup -d ${loopfile}

@@ -3,7 +3,7 @@
  %defstr hexdef 0123456789ABCDEF
  %assign cursec 0x00
  %macro secalign 2.nolist ;Note - Alignment util. Pads 0s until at least N sectors from the previous call have been written.
-  ;hexprint cursec, LBA, %2
+  hexprint cursec, LBA, %2
   %assign cursec cursec+%1
   times (cursec*bps)-($-$$) db 0
   %endmacro
@@ -18,9 +18,9 @@
  %assign spf   (secs/spc/bps*0x04)   ;Sectors per FAT
 pre:
  %ifdef gpt
- incalign "builds/Fat32_BS",  0x01,Bootloader
- incalign "builds/Fat32_GPT", 0x01,GPT
- incalign "builds/Fat32_GPTE",0x08,GPTA
+ incalign "builds/Fat32_MBR", 0x01,Bootloader
+ incalign "builds/Fat32_GPTA",0x01,GPT
+ incalign "builds/Fat32_GPTE",0x08,GPTE
  %endif
  pre.end:
 head:
@@ -42,7 +42,7 @@ head:
   dw 0x0000            ;0x16 Ignored
   dw 0x0000            ;0x18 Ignored
   dw 0x0000            ;0x1A Ignored
-  dd (pre.end-pre)/bps ;0x1C Number of hidden sectors (sectors before the BPB)
+  dd sz(pre)/bps       ;0x1C Number of hidden sectors (sectors before the BPB)
   %if secs > 0xFFFF    ;0x20 Note - Continuing from above. The sector count values do not matter according to the spec. Only cluster count.
   dd secs              ;0x20 Sector count (FAT32)
   %else                ;0x20 Note - However, this system for determination sucks because it's very confusing and completely arbitrary.
@@ -93,7 +93,7 @@ gen:
   %endif                              ;
   %if (%1 & 0x01 == 0x01)             ;Chk file
   %define file%[fc]_cfile %5          ;Set copy file
-  %assign file%[fc]_size  %6          ;Set file size
+  file%[fc]_sz equ sz(file%[fc]_l)  ;Set size
   %endif                              ;
   %assign file%2_child%[file%2_ct] fc ;Set FileP_childN
   %assign file%2_ct file%2_ct+1       ;Inc FileP_ct
@@ -102,10 +102,10 @@ gen:
  ;Note - This is where the folders/files are defined before being generated.
  ;Note - If you want to ignore all the details then just make a script to generate these with the proper values.
  ;Note - LFNs are not currently supported.
- ;Ent  Type, ParentFolder, DOSName,      FileAttributes, CopyFile,  FileSize ;mkent arguments
- mkent 0x00, 0,            'NagleF32   ',0x08                                ;0x00, Root
- mkent 0x00, 0,            'Folder0    ',0x10                                ;0x01, Folder0
- mkent 0x01, 1,            'TestFile   ',0x20,'src/ExampleFile.txt', file0sz ;0x02, file
+ ;Ent  Type, ParentFolder, DOSName,      Attr, CopyFile              ;mkent arguments
+ mkent 0x00, 0,            'NagleF32   ',0x08                        ;0x00, Root
+ mkent 0x00, 0,            'Folder0    ',0x10                        ;0x01, Folder0
+ mkent 0x01, 1,            'TestFile   ',0x20, 'src/ExampleFile.txt' ;0x02, file
  ;Note - It is possible to rewrite this such that file sizes don't need to be passed in the script.
  ;Note - Maybe something for later. Not in the mood to rip apart functioning code right now.
 fat:
@@ -125,9 +125,9 @@ fat:
   %rep fc
    %assign file%[fi]_fat fatidx        ;Set FAT idx
    %if (file%[fi]_type & 0x01 == 0x00) ;Folder
-    %assign pi 0                    ;Set index counter
-    %assign foldersz 0              ;Set folder size
-    %rep file%[fi]_ct               ;Acm size
+    %assign pi 0                     ;Set index counter
+    %assign foldersz 0               ;Set folder size
+    %rep file%[fi]_ct                ;Acm size
      ;Note - For potential LFN handling
      ;%assign chidx  file%[fi]_child%[pi] ;Get child idx
      ;%defstr chname  file%[chidx]_name   ;Get name token
@@ -138,21 +138,22 @@ fat:
      ;%assign pi pi+1
      %assign foldersz foldersz+0x20
      %endrep
-    %assign foldersz foldersz-1     ;Dec the size to only get overflows
-    %assign extracls (foldersz/bpc) ;Get the amount of extra clusters needed for this file
-    %rep extracls                   ;Set clusters in FAT
-    fatnxt                          ;Set clusters in FAT
-    %endrep                         ;Set clusters in FAT
+    %assign foldersz foldersz-1      ;Dec the size to only get overflows
+    %assign extracls (foldersz/bpc)  ;Get the amount of extra clusters needed for this file
+    %rep extracls                    ;Set clusters in FAT
+    fatnxt                           ;Set clusters in FAT
+    %endrep                          ;Set clusters in FAT
+    %assign file%[fi]_cls extracls+1 ;Set the fent clusters
     %endif
    %if (file%[fi]_type & 0x01 == 0x01) ;File
-    %assign filesz file%[fi]_size   ;Get file size
-    %assign filesz filesz-1         ;Dec the size to only get overflows
-    %assign extracls (filesz / bpc) ;Get extra clusters
-    %rep extracls                   ;Set clusters in FAT
-    fatnxt                          ;Set clusters in FAT
-    %endrep                         ;Set clusters in FAT
+    ;Note - Use of esoteric equ behavior to bypass the limitations of assign.
+    ;Note - No idea if this is intended, or how exactly equ works, but it does work.
+    filexc  equ file%[fi]_sz-1     ;Get the amount of extra clusters
+    %rep filexc // bpc             ;Set clusters in FAT (must be // instead of / for some reason)
+    fatnxt                         ;Set clusters in FAT
+    %endrep                        ;Set clusters in FAT
+    %assign file%[fi]_cls filexc+1 ;Set the fent clusters
     %endif
-   %assign file%[fi]_cls extracls+1    ;Set the clusters
    fatend                              ;End FAT chain
    %assign fi fi+1                     ;Adv index
    %endrep
@@ -168,58 +169,61 @@ files:
   %if %3 == 0x02
    %assign temp 0x00
    %endif
-  db %1   ;0x00 Name and extension
-  db %2   ;0x0B Attributes
-  db 0    ;0x0C NT reserved
-  db 0    ;0x0D MS timestamp
-  dw 0    ;0x0E Create time
-  dw 0    ;0x10 Create date
-  dw 0    ;0x12 Last access date
-  dw 0    ;0x14 High word of the first cluster
-  dw 0    ;0x16 Write time
-  dw 0    ;0x18 Write date
-  dw temp ;0x1A Low word of the first cluster
-  dd %4   ;0x1C Byte count (0 for directories)
+  db %1             ;0x00 Name and extension
+  db %2             ;0x0B Attributes
+  db 0              ;0x0C NT reserved
+  db 0              ;0x0D MS timestamp
+  dw 0              ;0x0E Create time
+  dw 0              ;0x10 Create date
+  dw 0              ;0x12 Last access date
+  dw temp  >> 0x10  ;0x14 High word of the first cluster
+  dw 0              ;0x16 Write time
+  dw 0              ;0x18 Write date
+  dw temp  & 0xFFFF ;0x1A Low word of the first cluster
+  dd %4             ;0x1C Byte count (0 for directories)
   %endmacro
  %macro mkfent 1
-  %define chtype file%[%1]_type ;Get type
-  %define chtok  file%[%1]_name ;Get name token
-  %define chatt  file%[%1]_att  ;Get attributes
-  %define cls    file%[%1]_fat  ;Get FAT
-  %define size   0              ;Set size 0 for folder
-  %if (chtype & 0x01 == 0x01)   ;File
-  %define size  file%[%1]_size  ;Get size
-  %endif                        ;
-  fent chtok,chatt,cls,size     ;Create entry
+  %define chtype file%[%1]_type  ;Get type
+  %define chtok  file%[%1]_name  ;Get name token
+  %define chatt  file%[%1]_att   ;Get attributes
+  %define cls    file%[%1]_fat   ;Get FAT
+  %define size   0               ;Set size 0 for folder
+  %if (chtype & 0x01 == 0x01)    ;File
+  %define size   sz(file%[%1]_l) ;Get size
+  %endif                         ;
+  fent chtok,chatt,cls,size      ;Mke entry
   %endmacro
  %assign fi 0
  %rep fc
-  %assign curtype file%[fi]_type              ;Get type
-  %assign curpar  file%[fi]_parent            ;Get parent
-  %define curname file%[fi]_name              ;Get name
-  %assign curatt  file%[fi]_att               ;Get attributes
-  %assign curfat  file%[fi]_fat               ;Get FAT index
-  %assign curcls  file%[fi]_cls               ;Get clusters used
-  %if (file%[fi]_type & 0x01 == 0x00)         ;Folder
-  %if (fi != 0)                               ;Chk root folder
-  fent '.          ',0x10,curfat,0            ;Mke .
-  fent '..         ',0x10,file%[curpar]_fat,0 ;Mke ..
-  %endif                                      ;
-  %assign pi 0                                ;Set index counter
-  %rep file%[fi]_ct                           ;Make child entries
-   %assign chidx file%[fi]_child%[pi] ;Get child idx
-   %assign chtype file%[chidx]_type   ;Get child type
-   %define chtok  file%[chidx]_name   ;Get child name token
-   %strlen nameln chtok               ;Get name length
-   %if (nameln-2 > 13)                ;For potential LFN support
-   %endif                             ;
-   mkfent chidx                       ;Make entry
-   %assign pi pi+1                    ;Advance index
-   %endrep
-  secalign curcls, chtok              ;Align to cluster count
-  %endif
+  %assign curtype file%[fi]_type      ;Get type
+  %assign curpar  file%[fi]_parent    ;Get parent
+  %define curname file%[fi]_name      ;Get name
+  %assign curatt  file%[fi]_att       ;Get attributes
+  %assign curfat  file%[fi]_fat       ;Get FAT index
+  %assign curcls  file%[fi]_cls       ;Get clusters used
+  %if (file%[fi]_type & 0x01 == 0x00) ;Folder
+   %if (fi != 0)                               ;Chk root folder
+   fent '.          ',0x10,curfat,0            ;Mke .
+   fent '..         ',0x10,file%[curpar]_fat,0 ;Mke ..
+   %endif                                      ;
+   %assign pi 0                                ;Set index counter
+   %rep file%[fi]_ct                           ;Mke child entries
+    %assign chidx file%[fi]_child%[pi] ;Get child idx
+    %assign chtype file%[chidx]_type   ;Get child type
+    %define chtok  file%[chidx]_name   ;Get child name token
+    %strlen nameln chtok               ;Get name length
+    %if (nameln-2 > 13)                ;For potential LFN support
+    %endif                             ;
+    mkfent chidx                       ;Mke entry
+    %assign pi pi+1                    ;Adv index
+    %endrep
+    secalign curcls, curname             ;Aln to cluster count
+   %endif
   %if (file%[fi]_type & 0x01 == 0x01) ;File
-  incbin file%[fi]_cfile
-  %endif
+   file%[fi]_l:
+   incbin file%[fi]_cfile
+   file%[fi]_l.end:
+   secalign curcls, curname
+   %endif
   %assign fi fi+1
   %endrep

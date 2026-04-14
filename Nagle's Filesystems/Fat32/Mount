@@ -1,4 +1,4 @@
 #Mount the partition when it isn't GPT partitioned. Don't ctrl+c otherwise cleanup won't be done.
-sudo mount -t vfat -o loop build/Fat32_FS /media/MountTest
+sudo mount -t vfat -o loop builds/Fat32 /media/MountTest
 read
 sudo umount /media/MountTest
