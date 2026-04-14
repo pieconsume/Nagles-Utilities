@@ -1,3 +1,7 @@
-#0FC63DAF-8483-4772-8E79-3D69D8477DE4 linux filesystem data for GPT entry
+#Settings
+secsz=$((0x200))    #Sector size in bytes
+disksz=$((0x20000)) #Disk sectors
+partsz=$((0x18000)) #Part sectors
 
-nasm src/Ext2_FS.asm -o builds/Ext2_FS
+nasm src/Ext2.asm -dsecs=$partsz -dbps=$secsz -o builds/Ext2  #Generate the filesystem
+dd if=/dev/zero status=none of=builds/Ext2 bs=512 count=1 seek=$((disksz-1)) #Pad the file

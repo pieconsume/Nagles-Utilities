@@ -1,0 +1,15 @@
+#Settings
+secsz=$((0x200))    #Sector size in bytes
+blksz=$((0x400))    #Block size in bytes
+disksz=$((0x20000)) #Disk sectors
+partsz=$((0x18000)) #Part size
+
+#Generate the partitions
+nasm ../MBR.asm  -dsecsz=$secsz -ddisksects=$disksz -dpartsz=$partsz -o builds/Ext2_MBR   #Bootsector
+nasm ../GPTA.asm -dsecsz=$secsz -ddisksects=$disksz -dpartsz=$partsz -o builds/Ext2_GPTA #GUID Partition Table       (GPTA)
+nasm ../GPTB.asm -dsecsz=$secsz -ddisksects=$disksz -dpartsz=$partsz -o builds/Ext2_GPTB #GPT Backup                 (GPTB)
+nasm ../GPTE.asm -dsecsz=$secsz -ddisksects=$disksz -dpartsz=$partsz -o builds/Ext2_GPTE #GPT Partition Entry Array  (GPTE)
+
+nasm src/Ext2.asm -dsecs=$partsz -dbps=$secsz -dgpt -o builds/Ext2               #Generate the filesystem
+dd if=builds/Ext2_GPTE status=none of=builds/Ext2 bs=512 count=8 seek=$((disksz-9))           #Write the GPTE
+dd if=builds/Ext2_GPTB status=none of=builds/Ext2 bs=512 count=1 seek=$((disksz-1)) conv=sync #Write the GPTB (and pad the file)

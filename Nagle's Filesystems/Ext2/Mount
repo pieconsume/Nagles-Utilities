@@ -1,0 +1,4 @@
+#Mount the partition when it isn't GPT partitioned. Don't ctrl+c otherwise cleanup won't be done.
+sudo mount -t ext2 -o loop builds/Ext2 /media/MountTest
+read
+sudo umount /media/MountTest

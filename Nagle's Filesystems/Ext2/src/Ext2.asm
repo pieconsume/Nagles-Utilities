@@ -98,9 +98,9 @@ fsgen:
  %assign indua indct-indrs
 pre:
  %ifdef gpt
- incalign "build/Ext2_BS",  0x01,Bootloader
- incalign "build/Ext2_GPT", 0x01,GPT
- incalign "build/Ext2_GPTE",0x08,GPTA
+ incalign "builds/Ext2_MBR", 0x01,Bootloader
+ incalign "builds/Ext2_GPTA",0x01,GPT
+ incalign "builds/Ext2_GPTE",0x08,GPTA
  %endif
  pre.end:
 superblock:   ;0x00
