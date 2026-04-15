@@ -61,8 +61,7 @@
  %warning blknd blocks  per inode table
 fsgen:
  %assign idx 1
- %assign blkst 0x05 ;Block start
- %assign blkrs 0x07 ;Reserved blocks
+ %assign blkrs 0x05 ;Reserved blocks
  %assign indrs 0x00 ;Reserved inodes
  %macro mki 0   ;Empty inode entry
   %assign ind%[idx]_type -1
@@ -79,46 +78,45 @@ fsgen:
   %assign ind%[idx]_type   %1 ;Set type
   %define ind%[idx]_name   %2 ;Set name
   %assign ind%[idx]_parent %3 ;Set parent
-  %assign ind%[idx]_links  2  ;Set self and parent->child links
   %if %1 == 0 ;Dir
-   %assign ind%[idx]_chcnt 2
+   %assign ind%[idx]_links 2          ;Set self and parent->child links
+   %assign ind%[idx]_chcnt 2          ;Set starting child count
    %define ind%[idx]_child0_name "."  ;Mke .  entry
    %assign ind%[idx]_child0_idx  idx  ;Set .  entry inode index
    %define ind%[idx]_child1_name ".." ;Mke .. entry
    %assign ind%[idx]_child1_idx  %3   ;Set .. entry inode index
-   %if %3 != idx                      ;Ign edgecase where root parent must be root
-   %assign %$chidx ind%[%$par]_chcnt
-   %define ind%[%$par]_child%[%$chidx]_name %2     ;Set child name in parent
-   %assign ind%[%$par]_child%[%$chidx]_idx  idx    ;Set child name in parent
-   %assign ind%[%$par]_chcnt ind%[%$par]_chcnt+1 ;Inc child count in parent
-   %assign ind%[%$par]_links ind%[%$par]_links+1 ;Inc links in parent
-   %endif
    %endif
   %if %1 == 1 ;File
+   %assign ind%[idx]_links 1 ;Set parent link
+   %define ind%[idx]_file %4
    %endif
-  %if %3 != 0
-   %assign %$ch    %3
-   %assign chidx ind%[%$ch]_chcnt
-   %define ind%3_child%[chidx]_name, %2
-   %define ind%3_child%[chidx]_inde, idx
-   %assign ind%3_child chidx+1
+  %if %3 != idx ;Create child
+   %assign %$chidx ind%[%$par]_chcnt
+   %define ind%[%$par]_child%[%$chidx]_name %2   ;Set child name in parent
+   %assign ind%[%$par]_child%[%$chidx]_idx  idx  ;Set child name in parent
+   %assign ind%[%$par]_chcnt ind%[%$par]_chcnt+1 ;Inc child count in parent
+   %if %1 == 0                                   ;Inc links in parent if this is a folder
+    %assign ind%[%$par]_links ind%[%$par]_links+1
+    %endif
    %endif
   %assign indrs indrs+1
+  %assign blkrs blkrs+1
   %assign idx idx+1
   %pop mac_mki
   %endmacro
  ;
- mki                          ;0x01 Null
- mki 0x00, "Root",       0x02 ;0x02 Root
- mki                          ;0x03 Null
- mki                          ;0x04 Null
- mki                          ;0x05 Null
- mki                          ;0x06 Null
- mki                          ;0x07 Null
- mki                          ;0x08 Null
- mki                          ;0x09 Null
- mki                          ;0x0A Null
- mki 0x00, "lost+found", 0x02 ;0x0B Lost and found
+ mki                                              ;0x01 Null
+ mki 0x00, "Root",       0x02                     ;0x02 Root
+ mki                                              ;0x03 Null
+ mki                                              ;0x04 Null
+ mki                                              ;0x05 Null
+ mki                                              ;0x06 Null
+ mki                                              ;0x07 Null
+ mki                                              ;0x08 Null
+ mki                                              ;0x09 Null
+ mki                                              ;0x0A Null
+ mki 0x00, "lost+found", 0x02                     ;0x0B Lost and found
+ mki 0x01, "Test.txt",   0x02, "src/TestFile.txt" ;0x0C Test file
  %assign blkua blkct-blkrs
  %assign indua indct-indrs
  %assign indmk idx-1
@@ -246,20 +244,19 @@ blkdesc:      ;0x01
  dw 0x0000      ;0x0012 Unused in ext2
  blkalign 0x01, Block group descriptor
 bitmap_blk:   ;0x02
- ;Note - need to make this a bit more clear.
- ;Note - generates a bitmap for every used block.
- %assign blktm blkct
+ ;Note - this could easily be rewritten much better
+ %assign blktm blkct ;Blocks to map
  %rep blksz
   %if   blktm != 0
-   %if   blkrs > 8
-    db -1
-    %assign blkrs blkrs-8
-   %elif blkrs < 8
-    db (0x01<<blkrs)-1
-    %assign blkrs 0
-   %elif blktm > 8
+   %if   blkrs >= 8 ;>=8 blocks left to reserve
+    db -1                 ;Reserve 8 blocks
+    %assign blkrs blkrs-8 ;Reduce reserve count by 8
+   %elif blkrs <  8 ;< 8 blocks left to reserve
+    db (0x01<<blkrs)-1    ;Get the mask
+    %assign blkrs 0       ;Clear reserve count
+   %elif blktm >  8 ;> 8 blocks left to map, none left to reserve
     db 0
-   %else
+   %else            ;< 8 blocks left to map. blksz must always be aligned so this is pointless.
     db ~((0x01<<blktm)-1)
     %endif
    %assign blktm blktm-8
@@ -269,18 +266,18 @@ bitmap_blk:   ;0x02
   %endrep
  blkalign 0x01, Block bitmap
 bitmap_inode: ;0x03
- ;Note - need to make this a bit more clear.
- ;Note - generates a bitmap for every used inode.
+ ;Note - this could easily be rewritten much better
+ ;Note - same algorithm as bitmap_blk
  %assign blktm indct
  %rep blksz
   %if   blktm != 0
-   %if   indrs > 8
+   %if   indrs >= 8
     db -1
     %assign indrs indrs-8
-   %elif indrs < 8
+   %elif indrs <  8
     db (0x01<<indrs)-1
     %assign indrs 0
-   %elif blktm > 8
+   %elif blktm >  8
     db 0
    %else
     db ~((0x01<<blktm)-1)
@@ -293,7 +290,7 @@ bitmap_inode: ;0x03
  blkalign 0x01, Inode bitmap
 inode_table:  ;0x04
  %define blk(x) ((x-$$) - (ext2-$$)) / blksz
- %macro inode_ent 0-4 0,0,0,0
+ %macro inode_ent 0-5 0,0,0,0,0
   dw %1         ;0x00 Type and permissions
   dw 0x0000     ;0x02 UserID
   dd %2         ;0x04 Size lo
@@ -302,11 +299,11 @@ inode_table:  ;0x04
   dd 0x00000000 ;0x10 Timestamp
   dd 0x00000000 ;0x14 Timestamp
   dw 0x0000     ;0x18 GID
-  dw %4         ;0x1A Links
-  dd %2/secsz   ;0x1C Sectors
+  dw %5         ;0x1A Links
+  dd %3/secsz   ;0x1C Sectors
   dd 0x00000000 ;0x20 Flags
   dd 0x00000000 ;0x24 OS1
-  dd %3         ;0x28 BlockN
+  dd %4         ;0x28 BlockN
   dd 0x00000000 ;0x2C BlockN
   dd 0x00000000 ;0x30 BlockN
   dd 0x00000000 ;0x34 BlockN
@@ -332,36 +329,24 @@ inode_table:  ;0x04
  %assign idx 1
  %push rep_indmk
  %rep indmk
-  %if ind%[idx]_type == -1 ;Null
+  %if ind%[idx]_type == -1
    inode_ent
-   %endif
-  %if ind%[idx]_type ==  0 ;Folder
-   %define  %$block blk(ind%[idx]_blk) ;Block
-   %define  %$size   sz(ind%[idx]_blk) ;Size in bytes
-   %define  %$links ind%[idx]_links    ;Links
+  %else
+   %define  %$flag %cond(ind%[idx]_type == 0, 0x41ED, 0x81B4) ;Folder/file flags
+   %define  %$size   sz(ind%[idx]_fle)                        ;Size of file
+   %define  %$blksz  sz(ind%[idx]_blk)                        ;Size of blocks
+   %define  %$block blk(ind%[idx]_blk)                        ;Block
+   %define  %$links ind%[idx]_links                           ;Links
    %define  %$name  ind%[idx]_name
    %warning %$name blocks %$block
    %warning %$name size   %$size
    %warning %$name links  %$links
-   inode_ent 0x41ED,sz(ind%[idx]_blk),blk(ind%[idx]_blk),%$links
-   %endif
-  %if ind%[idx]_type ==  1 ;File
+   %warning %$name flags  %$flag
+   inode_ent %$flag, %$size, %$blksz, %$block, %$links
    %endif
   %assign idx idx+1
   %endrep
   %pop rep_indmk
- ;Params   Flags,  Bytes, Block, Links ;Ent prototype
- ;inode_ent                             ;Ent 0x01
- ;inode_ent 0x41ED, blksz, 0x05,  0x03  ;Ent 0x02, root
- ;inode_ent                             ;Ent 0x03
- ;inode_ent                             ;Ent 0x04
- ;inode_ent                             ;Ent 0x05
- ;inode_ent                             ;Ent 0x06
- ;inode_ent                             ;Ent 0x07
- ;inode_ent                             ;Ent 0x08
- ;inode_ent                             ;Ent 0x09
- ;inode_ent                             ;Ent 0x0A
- ;inode_ent 0x41ED, blksz, 0x06,  0x02  ;Ent 0x0B
  blkalign blknd, Inode table
 files:        ;0x05
  %macro dirent 2-3.nolist
@@ -387,21 +372,28 @@ files:        ;0x05
    %assign %$chcnt ind%[idx]_chcnt ;Get parent child count
    %assign %$chidx 0
    ind%[idx]_blk:
+   ind%[idx]_fle:
    %rep %$chcnt
     %define %$ch_name ind%[idx]_child%[%$chidx]_name ;Get child name
-    %assign %$ch_par  ind%[idx]_child%[%$chidx]_idx  ;Get reference
-    %warning %$name Name: %$ch_name Parent: %$ch_par
+    %assign %$ch_ref  ind%[idx]_child%[%$chidx]_idx  ;Get reference
+    %warning %$name Name: %$ch_name Ref: %$ch_ref
     %if %$chidx == %$chcnt-1                         ;Chk final  entry
-    dirent %$ch_par, %$ch_name, %$name               ;Out final  entry
+    dirent %$ch_ref, %$ch_name, %$name               ;Out final  entry
     %else                                            ;Els
-    dirent %$ch_par, %$ch_name                       ;Out normal entry
+    dirent %$ch_ref, %$ch_name                       ;Out normal entry
     %endif                                           ;
     %assign %$chidx %$chidx+1                        ;Inc chidx
     %endrep
+   ind%[idx]_fle.end:
    ind%[idx]_blk.end:
    %endif
   %if ind%[idx]_type == 1
+   %define %$name  ind%[idx]_name  ;Get parent name
    ind%[idx]_blk:
+   ind%[idx]_fle:
+   incbin ind%[idx]_file
+   ind%[idx]_fle.end:
+   blkalign (sz(ind%[idx]_fle) / blksz)+1, %$name
    ind%[idx]_blk.end:
    %endif
   %assign idx idx+1
