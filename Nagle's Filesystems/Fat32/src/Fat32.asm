@@ -3,7 +3,9 @@
  %defstr hexdef 0123456789ABCDEF
  %assign cursec 0x00
  %macro secalign 2.nolist ;Note - Alignment util. Pads 0s until at least N sectors from the previous call have been written.
+  ;%ifdef debug
   hexprint cursec, LBA, %2
+  ;%endif
   %assign cursec cursec+%1
   times (cursec*bps)-($-$$) db 0
   %endmacro
@@ -11,9 +13,11 @@
   incbin %1
   secalign %2,%3
   %endmacro
+ %ifdef debug
  hexprint secs, Sectors in partition
  hexprint bps,  Bytes per sector
  hexprint spc,  Sectors per cluster
+ %endif
  %assign bpc   bps*spc               ;Bytes   per cluster
  %assign spf   (secs/spc/bps*0x04)   ;Sectors per FAT
 pre:
@@ -103,11 +107,14 @@ gen:
  ;Note - If you want to ignore all the details then just make a script to generate these with the proper values.
  ;Note - LFNs are not currently supported.
  ;Ent  Type, ParentFolder, DOSName,      Attr, CopyFile              ;mkent arguments
+ %ifndef fsgen
  mkent 0x00, 0,            'NagleF32   ',0x08                        ;0x00, Root
  mkent 0x00, 0,            'Folder0    ',0x10                        ;0x01, Folder0
  mkent 0x01, 1,            'TestFile   ',0x20, 'src/ExampleFile.txt' ;0x02, file
- ;Note - It is possible to rewrite this such that file sizes don't need to be passed in the script.
- ;Note - Maybe something for later. Not in the mood to rip apart functioning code right now.
+ %else
+ %defstr fsgenstr fsgen
+ %include fsgenstr
+ %endif
 fat:
  %macro fatnxt 0
   dd fatidx+1
@@ -148,11 +155,11 @@ fat:
    %if (file%[fi]_type & 0x01 == 0x01) ;File
     ;Note - Use of esoteric equ behavior to bypass the limitations of assign.
     ;Note - No idea if this is intended, or how exactly equ works, but it does work.
-    filexc  equ file%[fi]_sz-1     ;Get the amount of extra clusters
-    %rep filexc // bpc             ;Set clusters in FAT (must be // instead of / for some reason)
-    fatnxt                         ;Set clusters in FAT
-    %endrep                        ;Set clusters in FAT
-    %assign file%[fi]_cls filexc+1 ;Set the fent clusters
+    filexc_%[fi]  equ file%[fi]_sz-1              ;Get the amount of extra clusters
+    %rep filexc_%[fi] // bpc                      ;Set clusters in FAT (must be // instead of / for some reason)
+    fatnxt                                        ;Set clusters in FAT
+    %endrep                                       ;Set clusters in FAT
+    %assign file%[fi]_cls (filexc_%[fi] // 512)+1 ;Set the fent clusters
     %endif
    fatend                              ;End FAT chain
    %assign fi fi+1                     ;Adv index

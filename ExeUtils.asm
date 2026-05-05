@@ -92,27 +92,36 @@
   %endmacro
 
 ;Compatibility packages
+%macro guard_st 1
+ %ifndef %1
+ %define %1
+ %endmacro
+%macro guard_en 0
+ %endif
+ %endmacro
 %ifidn platform, win64
  %macro util_compat_stdc    0
-  %define cpt_stdc
+  guard_st cpt_stdc
   addlib msvcr120.dll
   import _iob,       msvcr120.dll, forced ;Array that contains stdin/out/err
   import _get_errno, msvcr120.dll, forced ;Function to get errno
   %macro geterrno 0
-  ccl [_get_errno]
-  %endmacro
+   ccl [_get_errno]
+   %endmacro
+  guard_en
   %endmacro
  %macro util_compat_cmdl    0
-  %define cpt_cmdl
+  guard_st cpt_cmdl
   addlib Kernel32.dll
   addlib msvcr120.dll
   addlib shell32.dll
   import GetCommandLineW,    Kernel32.dll
   import sprintf,            msvcr120.dll
   import CommandLineToArgvW, shell32.dll
+  guard_en
   %endmacro
  %macro util_compat_threads 0
-  %define cpt_threads
+  guard_st cpt_threads
   addlib msvcr120.dll
   import malloc,       msvcr120.dll
   import _beginthread, msvcr120.dll
@@ -126,24 +135,27 @@
   %macro thr_exit 0
    ccl [_endthread]
    %endmacro
+  guard_en
   %endmacro
  %macro util_compat_sleep   0
-  %define cpt_sleep
+  guard_st cpt_sleep
   addlib Kernel32.dll
   import Sleep, Kernel32.dll
   %macro sleepms 1
    mov p0d,%1
    ccl [Sleep]
    %endmacro
+  guard_en
   %endmacro
  %macro util_compat_time    0
-  %define cpt_time
+  guard_st cpt_time
   addlib Kernel32.dll
   import GetTickCount,            Kernel32.dll
   import GetSystemTimeAsFileTime, Kernel32.dll
+  guard_en
   %endmacro
  %macro util_compat_sock    0
-  %define cpt_sock
+  guard_st cpt_sock
   addlib Ws2_32.dll
   import WSAStartup,      Ws2_32.dll
   import closesocket,     Ws2_32.dll
@@ -158,9 +170,10 @@
    mov p0d,%1
    ccl [closesocket]
    %endmacro
+  guard_en
   %endmacro
  %macro util_compat_exc     0
-  %define cpt_exc
+  guard_st cpt_exc
   addlib Kernel32.dll
   import AddVectoredExceptionHandler, Kernel32.dll
   %macro exc_handler 1
@@ -168,26 +181,28 @@
    lea p1q,[%1]
    ccl [AddVectoredExceptionHandler]
    %endmacro
+  guard_en
   %endmacro
  %endif
 %ifidn platform, linux
  %macro util_compat_stdc    0
-  %define cpt_stdc
+  guard_st cpt_stdc
   addlib libc.so.6
   import stdin,  x, forced
   import stdout, x, forced
   import stderr, x, forced
   import __errno_location
   %macro geterrno 0
-  mov r0q,[c_errptr]
-  mov r0q,[r0q]
-  %endmacro
+   mov r0q,[c_errptr]
+   mov r0q,[r0q]
+   %endmacro
+  guard_en
   %endmacro
  %macro util_compat_cmdl    0
   %define cpt_cmdl
   %endmacro
  %macro util_compat_threads 0
-  %define cpt_threads
+  guard_st cpt_threads
   addlib libc.so.6
   import malloc
   import clone
@@ -205,23 +220,26 @@
   %macro thr_exit 0
    fnr abic
    %endmacro
+  guard_en
   %endmacro
  %macro util_compat_sleep   0
-  %define cpt_sleep
+  guard_st cpt_sleep
   addlib libc.so.6
   import usleep
   %macro sleepms 1
    mov p0d,%1*1000
    ccl [usleep]
    %endmacro
+  guard_en
   %endmacro
  %macro util_compat_time    0
-  %define cpt_time
+  guard_st cpt_time
   addlib libc.so.6
   import gettimeofday
+  guard_en
   %endmacro
  %macro util_compat_sock    0
-  %define cpt_sock
+  guard_st cpt_sock
   addlib libc.so.6
   import close
   %macro sock_init 0
@@ -231,9 +249,10 @@
    mov p0d,%1
    ccl [close]
    %endmacro
+  guard_en
   %endmacro
  %macro util_compat_exc     0
-  %define cpt_exc
+  guard_st cpt_exc
   addlib libc.so.6
   import sigaction
   %macro exc_handler 1
@@ -273,6 +292,7 @@
     jmp %%setsigs   ;Rpt
    %%done:
    %endmacro
+  guard_en
   %endmacro
  %endif
 %macro util_compat_all  0
@@ -283,7 +303,9 @@
  util_compat_time
  util_compat_sock
  util_compat_exc
+ util_compat_dbg
  %endmacro
+
 ;Necessary program macros
 %ifidn platform, win64
  %macro prog_init 0
@@ -411,6 +433,7 @@
    %endif
   %endmacro
  %endif
+
 ;Code/data
 %macro util_func_std    0 ;Misc utility functions
  util_push_abi:
@@ -566,6 +589,7 @@
  %endmacro
 %macro util_data_compat 0 ;Data required by data_compat
  %ifdef cpt_stdc
+  align 0x08, db 0
   c_stdin  dq 0
   c_stdout dq 0
   c_stderr dq 0
@@ -582,5 +606,9 @@
  %ifdef cpt_time
   align 0x08, db 0
   timestamp times 0x10 db 0
+  %endif
+ %ifdef cpt_dbg
+  align 0x04, db 0
+
   %endif
  %endmacro

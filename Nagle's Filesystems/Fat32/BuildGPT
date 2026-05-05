@@ -4,12 +4,14 @@ disksz=$((0x20000)) #Disk sectors
 partsz=$((0x18000)) #FAT  sectors
 fatspc=$((0x01))    #FAT  sectors per cluster
 
+./../UpdateFat32
+
 #Generate the partitions
-nasm ../MBR.asm  -dsecsz=$secsz -ddisksects=$disksz -dpartsz=$partsz -dfatsecs=$fatsecs -o builds/Fat32_MBR   #Bootsector
+nasm ../MBR.asm  -dsecsz=$secsz -ddisksects=$disksz -dpartsz=$partsz -dfatsecs=$fatsecs -o builds/Fat32_MBR  #Bootsector
 nasm ../GPTA.asm -dsecsz=$secsz -ddisksects=$disksz -dpartsz=$partsz -dfatsecs=$fatsecs -o builds/Fat32_GPTA #GUID Partition Table       (GPTA)
 nasm ../GPTB.asm -dsecsz=$secsz -ddisksects=$disksz -dpartsz=$partsz -dfatsecs=$fatsecs -o builds/Fat32_GPTB #GPT Backup                 (GPTB)
 nasm ../GPTE.asm -dsecsz=$secsz -ddisksects=$disksz -dpartsz=$partsz -dfatsecs=$fatsecs -o builds/Fat32_GPTE #GPT Partition Entry Array  (GPTE)
 
-nasm src/Fat32.asm -dsecs=$partsz -dbps=$secsz -dspc=$fatspc -dgpt -o builds/Fat32                 #Generate the filesystem
+nasm src/Fat32.asm -dsecs=$partsz -dbps=$secsz -dspc=$fatspc -dgpt -o builds/Fat32              #Generate the filesystem
 dd if=builds/Fat32_GPTE status=none of=builds/Fat32 bs=512 count=8 seek=$((disksz-9))           #Write the GPTE
 dd if=builds/Fat32_GPTB status=none of=builds/Fat32 bs=512 count=1 seek=$((disksz-1)) conv=sync #Write the GPTB (and pad the file)

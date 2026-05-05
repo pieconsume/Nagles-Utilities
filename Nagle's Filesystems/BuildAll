@@ -4,4 +4,5 @@ cd "Fat32"
 cd ..
 cd "Ext2"
 ./Build
+./BuildGPT
 cd ..
