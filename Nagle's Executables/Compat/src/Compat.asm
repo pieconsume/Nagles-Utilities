@@ -15,6 +15,7 @@ defs:
   %assign strcnt strcnt+1
   %endmacro
  %define pf_allfuncs
+ %define dbg_allfuncs
 imports:
  util_compat_all
  %ifidn platform, win64
@@ -30,7 +31,7 @@ imports:
   import abort,   msvcr120.dll
  prog_head
 code:
- fn entry,      prog
+ fn entry,      prog, 0x08, line
   debugprint works!
   call test_abic
   call test_abis
@@ -41,65 +42,66 @@ code:
   call test_sleep
   call test_time
   call test_sock
+  call test_dbg
   call test_pf
   call test_exc
- fn test_abic,  abic
+ fn test_abic,  abic, 0x08, line
   debugprint ABIC works
   fnr abic
- fn test_abis,  abis
+ fn test_abis,  abis, 0x08, line
   debugprint ABIS works
   fnr abis
- fn test_safe,  safe
+ fn test_safe,  safe, 0x08, line
   debugprint SAFE works
   fnr safe
- fn test_std,   abic
+ fn test_std,   abic, 0x08, line
   ml mov p0q,[c_stdout] : lea p1q,[stdoutstr] : lea p2q,[platstr] : ccl [fprintf]
   ml mov p0q,[c_stderr] : lea p1q,[stderrstr] : lea p2q,[platstr] : ccl [fprintf]
   fnr abic
- fn test_arg,   abic
+ fn test_arg,   abic, 0x08, line
   mov p2d,[argc]                  ;Get argc
   debugprint "Check argc:    %i"  ;Wrt argc
   mov p2q,[argv]                  ;Get argv
   mov p2q,[p2q+0x08]              ;Get argv[1]
   debugprint "Check argv[1]: %s"  ;Wrt argv[1]
   fnr abic
- fn test_err,   abic
+ fn test_err,   abic, 0x08, line
   fnr abic
- fn test_thrmk, abic
+ fn test_thrmk, abic, 0x08, line
   thr_make test_thr,0x1000
   thr_wait:
   cmp dword[thr_done],0x01
   jne thr_wait
   fnr abic
- fn test_thr,   abic
+ fn test_thr,   abic, 0x08, line
   debugprint Threads work
   mov dword[thr_done],0x01
   thr_exit
- fn test_sleep, abic
+ fn test_sleep, abic, 0x08, line
   debugprint Testing sleepms
   sleepms 200
   fnr abic
- fn test_time,  abic
+ fn test_time,  abic, 0x08, line
   ml call util_timems : mov p2q,r0q : debugprint "Testing util_timems: 0x%016llX"
   ml call util_timeus : mov p2q,r0q : debugprint "Testing util_timeus: 0x%016llX"
   fnr abic
- fn test_sock,  abic
+ fn test_sock,  abic, 0x08, line
   sock_init
   mov p2q,r0q
   debugprint "Testing sock_init:   0x%016llX"
   fnr abic
- fn test_pf,    abic
-  ;pf_st pftest
-  debugprint Testing printf time
-  ;pf_en pftest
+ fn test_dbg,   abic, 0x08, line
+  call util_dbg_printall
+  fnr abic
+ fn test_pf,    abic, 0x08, line
   pf_wa
   fnr abic
- fn test_exc,   abic
+ fn test_exc,   abic, 0x08, line
   exc_handler test_exch
   mov eax,0
   div eax
   fnr abic
- fn test_exch,  leaf
+ fn test_exch,  leaf, 0x08, line
   and spl,0xF0  ;Note - Better to use a temporary stack in real code
   debugprint Exceptions work
   ccl [exit]

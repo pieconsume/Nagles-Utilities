@@ -4,6 +4,7 @@
  ;data / data.end ;Section, must be page aligned
 
 defs:
+ imgbase:
  %define platform linux
  %include "../../ExeUtils.asm"
  [BITS 64]
