@@ -1,24 +1,20 @@
+;Todo - switch to context local defines
+
 defs:
  %include "../../CompatGen.asm"
  %assign strcnt 0
  %macro debugprint 1-2
-  %defstr strdef_%[strcnt] %1
-  %if %0 == 1
-   lea p0q,[platstr]
-   ccl [printf]
-   lea p0q,[str_%[strcnt]]
-   ccl [printf]
+  %ifnstr %1
+   %defstr strdef_%[strcnt] %1
+  %else
+   %define strdef_%[strcnt] %1
    %endif
-  %if %0 == 2
-   mov p0q,%2
-   lea p1q,[platstr]
-   ccl [fprintf]
-   mov p0q,%2
-   lea p1q,[str_%[strcnt]]
-   ccl [fprintf]
-   %endif
+  lea p0q,[str_%[strcnt]]
+  lea p1q,[platstr]
+  ccl [printf]
   %assign strcnt strcnt+1
   %endmacro
+ %define pf_allfuncs
 imports:
  util_compat_all
  %ifidn platform, win64
@@ -34,22 +30,18 @@ imports:
   import abort,   msvcr120.dll
  prog_head
 code:
- entry:
-  prog_init
+ fn entry,      prog
   debugprint works!
   call test_abic
   call test_abis
   call test_safe
   call test_std
   call test_arg
-  thr_test:
-   thr_make test_thr,0x1000
-   thr_wait:
-   cmp dword[thr_done],0x01
-   jne thr_wait
+  call test_thrmk
   call test_sleep
   call test_time
   call test_sock
+  call test_pf
   call test_exc
  fn test_abic,  abic
   debugprint ABIC works
@@ -61,20 +53,23 @@ code:
   debugprint SAFE works
   fnr safe
  fn test_std,   abic
-  debugprint StdOut works, [c_stdout]
-  debugprint StdErr works, [c_stderr]
+  ml mov p0q,[c_stdout] : lea p1q,[stdoutstr] : lea p2q,[platstr] : ccl [fprintf]
+  ml mov p0q,[c_stderr] : lea p1q,[stderrstr] : lea p2q,[platstr] : ccl [fprintf]
   fnr abic
  fn test_arg,   abic
-  debugprint Printing argc and argv[1]
-  mov r0d,[argc]
-  call util_printr0d
-  mov p0q,[argv]
-  mov p0q,[p0q+0x08]
-  call [printf]
-  lea p0q,[nlstr]
-  call [printf]
+  mov p2d,[argc]                  ;Get argc
+  debugprint "Check argc:    %i"  ;Wrt argc
+  mov p2q,[argv]                  ;Get argv
+  mov p2q,[p2q+0x08]              ;Get argv[1]
+  debugprint "Check argv[1]: %s"  ;Wrt argv[1]
   fnr abic
  fn test_err,   abic
+  fnr abic
+ fn test_thrmk, abic
+  thr_make test_thr,0x1000
+  thr_wait:
+  cmp dword[thr_done],0x01
+  jne thr_wait
   fnr abic
  fn test_thr,   abic
   debugprint Threads work
@@ -85,16 +80,19 @@ code:
   sleepms 200
   fnr abic
  fn test_time,  abic
-  debugprint Printing timems and timeus
-  call util_timems
-  call util_printr0q
-  call util_timeus
-  call util_printr0q
+  ml call util_timems : mov p2q,r0q : debugprint "Testing util_timems: 0x%016llX"
+  ml call util_timeus : mov p2q,r0q : debugprint "Testing util_timeus: 0x%016llX"
   fnr abic
  fn test_sock,  abic
-  debugprint Printing sock_init result
   sock_init
-  call util_printr0d
+  mov p2q,r0q
+  debugprint "Testing sock_init:   0x%016llX"
+  fnr abic
+ fn test_pf,    abic
+  ;pf_st pftest
+  debugprint Testing printf time
+  ;pf_en pftest
+  pf_wa
   fnr abic
  fn test_exc,   abic
   exc_handler test_exch
@@ -116,9 +114,11 @@ data:
   %defstr plat platform
   nlstr   db 10,0
   platstr db '[',plat,'] ',0
+  stdoutstr db '%sStdOut works',10,0
+  stderrstr db '%sStdErr works',10,0
   %assign idx 0
   %rep strcnt
-  str_%[idx] db strdef_%[idx],10,0
+  str_%[idx] db "%s",strdef_%[idx],10,0
   %assign idx idx+1
   %endrep
  utildata:
