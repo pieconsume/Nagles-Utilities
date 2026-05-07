@@ -16,6 +16,7 @@ defs:
   %endmacro
 imports:
  util_compat_all
+ util_compat_section bss, 0x1000
  %define pf_allfuncs
  %define dbg_allfuncs
  %ifidn platform, win64
@@ -61,11 +62,11 @@ code:
   fnr abic
  fn test_map,   abic, 0x10, line
   debugprint "Program map: "
-  ml lea p2q,[img]  : lea p3q,[img.end]  : debugprint " Image: [0x%016llX-0x%016llX]"
-  ml lea p2q,[code] : lea p3q,[code.end] : debugprint " Code:  [0x%016llX-0x%016llX]"
-  ml lea p2q,[data] : lea p3q,[data.end] : debugprint " Data:  [0x%016llX-0x%016llX]"
-  ml lea p2q,[bss]  : lea p3q,[bss.end]  : debugprint " Bss:   [0x%016llX-0x%016llX]"
-  ml lea p2q,[stk]  : lea p3q,[stk.end]  : debugprint " Stack: [0x%016llX-0x%016llX]"
+  ml lea p2q,[img]  : lea p3q,[img.end]  : debugprint "Image: [0x%016llX-0x%016llX]"
+  ml lea p2q,[code] : lea p3q,[code.end] : debugprint "Code:  [0x%016llX-0x%016llX]"
+  ml lea p2q,[data] : lea p3q,[data.end] : debugprint "Data:  [0x%016llX-0x%016llX]"
+  ml lea p2q,[bss]  : lea p3q,[bss.end]  : debugprint "Bss:   [0x%016llX-0x%016llX]"
+  ml lea p2q,[stk]  : lea p3q,[stk.end]  : debugprint "Stack: [0x%016llX-0x%016llX]"
   fnr abic
  fn test_std,   abic, 0x10, line
   ml mov p0q,[c_stdout] : lea p1q,[stdoutstr] : lea p2q,[platstr] : ccl [fprintf]
@@ -112,6 +113,7 @@ code:
   pf_wa
   fnr abic
  fn test_exc,   abic, 0x10, line
+  xor rsp,rsp
   mov eax,0
   div eax
   fnr abic
@@ -121,7 +123,7 @@ code:
    mov [dbg_frame+(idx*0x08)],auto%[idx]q
    %assign idx idx+1
    %endrep
-  lea rsp,[bss.end-0x10]
+  lea rsp,[bss.end-0x100]
   debugprint "Register dump:"
   %define idx 0
   %rep 0x10

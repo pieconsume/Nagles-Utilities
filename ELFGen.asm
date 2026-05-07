@@ -39,16 +39,7 @@ imports:
   %define fn%[funcs]_val %2
   %assign funcs funcs+1
   %endmacro
-%macro prog_head 0
- compat:
-  %define  imgsz   end
-  %define img.end $$+imgsz
-  %ifdef cpt_bss
-   compat_bssgen
-   %endif
-  %ifdef cpt_stk
-   compat_stkgen
-   %endif
+%macro prog_head 0 
  hdr:
  elfhead:
   dd 0x464C457F         ;File identifier (0x7F, 'ELF')
@@ -88,12 +79,14 @@ imports:
   progent 0x01, 0x03, code,     sz(code),     roundu(sz(code),0x1000), 0x1000 ;Code
   progent 0x01, 0x06, data,     sz(data),     roundu(sz(data),0x1000), 0x1000 ;Data
   progent 0x01, 0x06, tabs,     sz(tabs),     roundu(sz(tabs),0x1000), 0x1000 ;Data
-  %ifdef cpt_bss
-  progent 0x01, 0x06, bss.stt,  0,            roundu(bss.size,0x1000), 0x1000 ;BSS
-  %endif
-  %ifdef cpt_stk
-  progent 0x01, 0x06, stk.stt,  0,            roundu(stk.size,0x1000), 0x1000 ;Stack
-  %endif
+  %assign idx 0
+  %ifdef secidx
+   %rep secidx
+   %strcat name ".", sec%[idx].name
+   progent 0x01, 0x06, sec%[idx].base, 0, sec%[idx].size, 0x1000
+   %assign idx idx+1
+   %endrep
+   %endif
   progent 0x02, 0x06, dyna,     sz(dyna),     sz(dyna),                0x08   ;Dynamic table
   progent 0x03, 0x04, interp,   sz(interp),   sz(interp),              0x01   ;Interp string
   segments.end:

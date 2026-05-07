@@ -6,8 +6,8 @@
 %define genutils
 
 %define exp(x) x ;Force parameter expansion
-%define roundd(x, y) (x - (x % y))
-%define roundu(x, y) (x - (x % y) + (y * (x % y != 0)))
+%define roundd(x, y) ((x) - ((x) % (y)))
+%define roundu(x, y) ((x) - ((x) % (y)) + ((y) * ((x) % (y) != 0)))
 %define sz(x) (exp(x).end - x)
 %define sz(x,y) ((exp(x).end - x)/y)
 

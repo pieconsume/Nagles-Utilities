@@ -276,6 +276,8 @@
   guard_st cpt_exc
   addlib libc.so.6
   import sigaction
+  import sigaltstack
+  util_compat_section estack, 0x10000
   %macro exc_handler 1
    ;Sigaction struct
     ;0x00-0x07 Handler
@@ -290,19 +292,20 @@
     ;0x08 (0x0100) ;SIGFPE
     ;0x0B (0x0800) ;SIGSEGV
     ;0x0F (0x8000) ;SIGTERM
-   sub rsp,0xA0             ;Mke stack space for the struct
-   xor r0d,r0d              ;Clr rax
-   mov p0q,rsp              ;Get mask ptr
-   mov p1d,0x13             ;Set 0x13 qwords (0x98 bytes)
-   %%clrloop:               ;Clr mask
+   sub rsp,0xA0                    ;Mke stack space for the struct
+   xor r0d,r0d                     ;Clr rax
+   mov p0q,rsp                     ;Get mask ptr
+   mov p1d,0x13                    ;Set 0x13 qwords (0x98 bytes)
+   %%clrloop:                      ;Clr mask
     mov [p0q],r0q ;Clr qword
     add p0q,0x08  ;Adv ptr
     dec p1d       ;Dec count
     jnz %%clrloop ;Rpt
-   lea r0q,[%1]             ;Get exception handler
-   mov qword[rsp+0x00],r0q  ;Set handler
-   mov dword[rsp+0x88],0x04 ;Set flags
-   mov s0d,0x8954           ;Bitmask for desired signums
+   lea r0q,[%1]                    ;Get exception handler
+   mov p0d,0x08000004              ;Set SA_SIGINFO and SA_ONSTACK
+   mov qword[rsp+0x00],r0q         ;Set handler
+   mov dword[rsp+0x88],p0d         ;Set flags
+   mov s0d,0x8954                  ;Bitmask for desired signums
    %%setsigs:
     bsf p0d,s0d     ;Set signum
     jz %%done       ;Ext if (bfs == 0)
@@ -312,11 +315,39 @@
     blsr s0d,s0d    ;Clr lowest set bit
     jmp %%setsigs   ;Rpt
    %%done:
-   add rsp,0xA0
+   lea p0q,[estack+(estack.size-0x100)] ;Get exception stack
+   xor p1d,p1d                          ;Clr flags
+   mov p2d,estack.size-0x100            ;Get stack size
+   mov [rsp+0x00],p0q                   ;Set stack
+   mov [rsp+0x08],p1q                   ;Set flags
+   mov [rsp+0x10],p2q                   ;Set stack size
+   mov p0q,rsp                          ;Set stack_t struct
+   xor p1d,p1d                          ;Clr old stack
+   ccl [sigaltstack]                    ;Run
+   add rsp,0xA0                         ;Rst stack
    %endmacro
   guard_en
   %endmacro
  %endif
+%macro util_compat_section 2
+ ;%1, name
+ ;%2, size
+ %ifndef  secidx
+ %assign  secidx 0
+ %endif
+ %ifndef imgtop
+ %define imgtop roundu(end-$$, 0x1000)
+ %endif
+ %defstr  sec%[secidx].name %1
+ %xdefine sec%[secidx].size %2
+ %xdefine sec%[secidx].base (imgtop+0x1000)
+ %xdefine %1                ($$+(sec%[secidx].base))
+ %xdefine %1.end            ($$+(sec%[secidx].base+sec%[secidx].size))
+ %xdefine %1.size %2
+ %xdefine imgtop            (sec%[secidx].base+sec%[secidx].size)
+ %xdefine  img.end          %1.end
+ %assign secidx secidx+1
+ %endmacro
 %macro util_compat_dbg   0
  guard_st cpt_dbg
  %ifidn platform, win64
@@ -376,37 +407,10 @@
   %endmacro
  guard_en
  %endmacro
-%macro util_compat_bss   0
- guard_st cpt_bss
- %ifndef bss.size
- %define bss.size 0x1000
- %macro compat_bssgen 0
-  %define bss.stt roundu((end-$$),0x1000)
-  %define bss     ($$+bss.stt)
-  %define bss.end ($$+(bss.stt+bss.size))
-  %define bss.ien (bss.stt+bss.size)
-  %define imgsz   bss.ien
-  %endmacro
- %endif
- guard_en
- %endmacro
 %macro util_compat_stack 0
  guard_st cpt_stk
- %ifndef stk.size
- ;Note - From testing at least 16 KiB is necessary on linux to prevent random crashes.
- ;Note - No crashes yet with 4 KiB on windows, but 64 KiB seems to be a recommendation.
- ;Note - Linux stack overflow crashes fail to trigger the exception handler.
- %define stk.size 0x10000
- %macro compat_stkgen 0
-  %ifndef bss.end
-  %define bss.end roundu(end-$$,0x1000)
-  %endif
-  %define stk.stt (roundu(bss.ien, 0x1000)+0x1000)
-  %define stk     ($$+stk.stt)
-  %define stk.end ($$+(stk.stt+stk.size))
-  %define stk.ien (stk.stt+stk.size)
-  %define imgsz   stk.ien
-  %endmacro
+ %ifndef stk
+ util_compat_section stk, 0x10000
  %endif
  guard_en
  %endmacro
@@ -420,7 +424,6 @@
  util_compat_exc
  util_compat_dbg
  util_compat_pf
- util_compat_bss
  util_compat_stack
  %endmacro
 

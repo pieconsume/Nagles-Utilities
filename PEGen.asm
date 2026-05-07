@@ -47,21 +47,11 @@ imports:
   %assign exps exps+1
   %endmacro
 %macro prog_head 0
- compat:
-  %ifndef bss.size
-   %define bss.size 0
-   %endif
-  %ifndef bss.size
-   %define stk.size 0
-   %endif
-  %define  imgsz   end
-   %define img.end $$+imgsz
-  %ifdef cpt_bss
-   compat_bssgen
-   %endif
-  %ifdef cpt_stk
-   compat_stkgen
-   %endif
+ %ifndef imgtop
+  %define imgsz end
+ %else
+  %define imgsz imgtop
+  %endif
  stub:
   dw 0x5A4D             ;Magic "MZ"
   times 0x3A db 0       ;Unused values
@@ -127,12 +117,20 @@ imports:
   sectent ".text", code, sz(code), roundu(sz(code),0x1000), 0x20000000
   sectent ".data", data, sz(data), roundu(sz(data),0x1000), 0xC0000000
   sectent ".tabs", tabs, sz(tabs), roundu(sz(tabs),0x1000), 0xC0000000
-  %ifdef cpt_bss
-  sectent ".bss",  bss.stt,  0,    bss.size,                0xC0000000
-  %endif
-  %ifdef cpt_stk
-  sectent ".stk",  stk.stt,  0,    stk.size,                0xC0000000
-  %endif
+  %assign idx 0
+  %ifdef secidx
+   %rep secidx
+   %strcat name ".", sec%[idx].name
+   sectent name, sec%[idx].base, 0, sec%[idx].size,   0xC0000000
+   %assign idx idx+1
+   %endrep
+   %endif
+  ;%ifdef cpt_bss
+  ;sectent ".bss",  bss.stt,  0,    bss.size,                0xC0000000
+  ;%endif
+  ;%ifdef cpt_stk
+  ;sectent ".stk",  stk.stt,  0,    stk.size,                0xC0000000
+  ;%endif
   sections.end:
   pe.end:
   times 0x1000-(pe.end-stub) db 0
