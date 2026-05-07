@@ -1,9 +1,13 @@
+;Todo - switch to context local defines
+
 ;Definitions
  %include "../../GenericUtils.asm"
- %define leaf 0x00
- %define abic 0x01
- %define abis 0x02
- %define safe 0x03
+ %define prog 0x00
+ %define leaf 0x01
+ %define abic 0x02
+ %define abis 0x03
+ %define safe 0x04
+ %define line __?LINE?__
  ;Pass registers
  %macro defset 5
   %define %1q %2
@@ -295,6 +299,65 @@
   guard_en
   %endmacro
  %endif
+%macro util_compat_dbg 0
+ guard_st cpt_dbg
+ %ifidn platform, win64
+  addlib msvcr120.dll
+  import printf, msvcr120.dll
+  %endif
+ %ifidn platform, linux
+  addlib libc.so.6
+  import printf
+  %endif
+ %assign dbgidx 0
+ %macro dbg_line 2
+  %assign %1_dbgidx dbgidx
+  %define dbg%[dbgidx]_name %1
+  %assign dbg%[dbgidx]_offs $-$$
+  %assign dbg%[dbgidx]_line %2
+  %assign dbgidx dbgidx+1
+  %endmacro
+ guard_en
+ %endmacro
+%macro util_compat_pf  0
+ guard_st cpt_pf
+ %ifidn platform, win64
+  addlib msvcr120.dll
+  import printf, msvcr120.dll
+  %endif
+ %ifidn platform, linux
+  addlib libc.so.6
+  import printf
+  %endif
+ %define pfidx 0
+ %macro pf_st 1 ;Start
+  %define pf%[pfidx]_name %1 ;Def name
+  inc qword [%1_runcount]    ;Inc runcount
+  call util_timeus           ;Get runstart
+  mov [%1_runstart],r0q      ;Set runstart
+  %assign pfidx pfidx+1
+  %endmacro
+ %macro pf_en 1 ;End
+  call util_timeus           ;Get runtime
+  sub r0q,[%1_runstart]      ;Get runtime
+  add [%1_runtime],r0q       ;Add runtime
+  %endmacro
+ %macro pf_wr 1 ;Write
+  lea p0q,[pf_print]
+  mov p1q,[%1_runcount]
+  mov p2q,[%1_runtime]
+  lea p3q,[%1_str]
+  ccl [printf]
+  %endmacro
+ %macro pf_wa 0 ;Write all
+  %assign idx 0
+  %rep pfidx
+  pf_wr pf%[idx]_name
+  %assign idx idx+1
+  %endrep
+  %endmacro
+ guard_en
+ %endmacro
 %macro util_compat_all  0
  util_compat_stdc
  util_compat_cmdl
@@ -304,9 +367,11 @@
  util_compat_sock
  util_compat_exc
  util_compat_dbg
+ util_compat_pf
  %endmacro
 
 ;Necessary program macros
+;Note - Might make sense to re-merge fn and fnr given how much shared code they now have.
 %ifidn platform, win64
  %macro prog_init 0
   sub rsp,0x38 ;Initilize the stack
@@ -328,7 +393,7 @@
    mov [argv],r0q
    mov s0d,[argc] ;s0d, argc
    mov s1q,r0q    ;s1q, argv
-   argv_gen:
+   %%argv_gen:
     ;Somewhat hacky solution with reading and writing at the same address and using sprintf instead of WideCharToMultiByte
     ;That said it works fine on my machine
     mov p0q,[s1q]       ;Output to  argv[n]
@@ -337,20 +402,26 @@
     ccl [sprintf]       ;Convert string. UTF8 should always be smaller than LPWSTR
     add s1q,0x08        ;Advance to next pointer
     dec s0d             ;Decrement count
-    jnz argv_gen
+    jnz %%argv_gen
    %endif
   %endmacro
- %macro fn 2-3
-  %if %0 == 3 ;Optional function alignment
+ %macro fn 2-4
+  %if %0 >= 3 ;Optional function alignment
    align %3
    %endif
+  %if %0 == 4 ;Optional line number generation
+   dbg_line %1, %4
+   %endif
   %1:
+  %if %2 == prog ;Program entry
+   prog_init
+   %endif
   %if %2 == leaf ;Leaf function   / no ABI calls
    %endif
-  %if %2 == abic  ;Branch function / makes ABI calls
+  %if %2 == abic ;Branch function / makes ABI calls
    sub rsp,0x38
    %endif
-  %if %2 == abis ;Safe function   / saves abi preserved registers
+  %if %2 == abis ;Safe function   / saves ABI preserved registers
    call util_push_abi
    sub rsp,0x38
    %endif
@@ -358,8 +429,15 @@
    call util_push
    sub rsp,0x40
    %endif
+  %define pf_last pf_auto_%1
+  %if %isdef(pf_allfuncs) && %isnidn(%1, util_timeus)
+   pf_st pf_auto_%1
+   %endif
   %endmacro 
  %macro fnr 1
+  %if %isdef(pf_allfuncs) && %isnidn(pf_last, pf_auto_util_timeus)
+   pf_en pf_last
+   %endif
   %if %1 == leaf
    ret
    %endif
@@ -400,24 +478,37 @@
    sub rsp,0x10
    %endif
   %endmacro
- %macro fn 2-3
-  %if %0 == 3 ;Optional function alignment
+ %macro fn 2-4
+  %if %0 >= 3 ;Optional function alignment
    align %3
    %endif
+  %if %0 == 4 ;Optional line number generation
+   dbg_line %1, %4
+   %endif
   %1:
+  %if %2 == prog ;Program entry
+   prog_init
+   %endif
   %if %2 == leaf ;Leaf function   / no ABI calls
    %endif
   %if %2 == abic ;Branch function / makes ABI calls
    sub rsp,0x08
    %endif
-  %if %2 == abis ;Safe function   / saves abi preserved registers
+  %if %2 == abis ;Safe function   / saves ABI preserved registers
    call util_push_abi
    %endif
   %if %2 == safe ;Safe function   / saves all registers
    call util_push
    %endif
+  %define pf_last pf_auto_%1
+  %if %isdef(pf_allfuncs) && %isnidn(%1, util_timeus)
+   pf_st pf_auto_%1
+   %endif
   %endmacro
  %macro fnr 1
+  %if %isdef(pf_allfuncs) && %isnidn(pf_last, pf_auto_util_timeus)
+   pf_en pf_last
+   %endif
   %if %1 == leaf
    ret
    %endif
@@ -579,6 +670,28 @@
     fnr abis
    %endif
   %endif
+ %ifdef cpt_dbg
+  fn util_dbg_printall, abis
+  lea s0q,[dbg_dat]      ;Get debug data
+  lea s1q,[imgbase]      ;Get image base
+  mov s3d,dbgidx         ;Get debug count
+  %%dbg_print:           ;Out debug data
+   lea p0q,[dbg_out0] ;Get string0
+   mov p1d,[s0q+0x00] ;Get file offset
+   mov p3d,[s0q+0x00] ;Get file offset
+   mov p2d,[s0q+0x04] ;Get code offset
+   add p3q,s1q        ;Get address
+   ccl [printf]       ;Out
+   lea p0q,[dbg_out1] ;Get string1
+   mov p1d,[s0q+0x08] ;Get line
+   mov p2d,[s0q+0x0C] ;Get string index
+   add p2q,s1q        ;Get string address
+   ccl [printf]       ;Out
+   add s0q,0x10       ;Adv debug data
+   dec s3d            ;Rpt
+   jnz %%dbg_print    ;Rpt
+  fnr abis
+  %endif
  %endmacro
 %macro util_data_std    0 ;Data required by funcs_std
  align 0x08, db 0
@@ -608,7 +721,44 @@
   timestamp times 0x10 db 0
   %endif
  %ifdef cpt_dbg
-  align 0x04, db 0
-
+  align 0x08, db 0
+  %assign idx 0
+  dbg_dat:
+  %rep dbgidx
+   dbgdat%[idx]_addr dd dbg%[idx]_offs        ;0x00 File offset
+   dbgdat%[idx]_offs dd dbg%[idx]_offs - code ;0x04 Offset from base of code
+   dbgdat%[idx]_line dd dbg%[idx]_line        ;0x08 Line
+   dbgdat%[idx]_stri dd dbgdat%[idx]_name     ;0x0C Name index
+   %assign idx idx+1
+   %endrep
+  %assign idx 0
+  dbg_str:
+  %rep dbgidx
+   %defstr strname dbg%[idx]_name
+   dbgdat%[idx]_name db strname,0
+   %assign idx idx+1
+   %endrep
+  %endif
+  dbg_out0 db '[FileOffset: 0x%08llX] [CodeOffset: 0x%08llX] [Address: 0x%016llX] ',0
+  dbg_out1 db '[LineNumber: %06i] [%s]',10,0
+ %ifdef cpt_pf
+  align 0x08, db 0
+  %assign idx 0
+  %rep pfidx ;Generate data
+   %define pfname pf%[idx]_name
+   %[pfname]_runcount dq 0
+   %[pfname]_runstart dq 0
+   %[pfname]_runtime  dq 0
+   %assign idx idx+1
+   %endrep
+  %assign idx 0
+  %rep pfidx ;Generate strings
+   %defstr pfname pf%[idx]_name
+   pfname%[idx]:
+   %[pf%[idx]_name]_str:
+   db pfname,0
+   %assign idx idx+1
+   %endrep
+  pf_print db '[RunCount: 0x%016llX] [MicroSeconds: 0x%016llX] [%s]',10,0
   %endif
  %endmacro

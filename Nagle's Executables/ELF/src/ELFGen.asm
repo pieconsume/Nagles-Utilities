@@ -10,6 +10,7 @@ defs:
  [BITS 64]
  [DEFAULT REL]
  [ORG 0]
+ %define rsrv roundu(end,0x1000)
  %ifndef rsrvsz
  %assign rsrvsz 0
  %define sectidx(x) (x-sects)/0x40
@@ -82,7 +83,7 @@ imports:
   progent 0x01, 0x06, data,     sz(data),     roundu(sz(data),0x1000), 0x1000 ;Data
   progent 0x01, 0x06, tabs,     sz(tabs),     roundu(sz(tabs),0x1000), 0x1000 ;Data
   %if rsrvsz != 0
-  progent 0x01, 0x06, roundu(rsrv,0x1000), 0, roundu(rsrvsz,0x1000),   0x1000 ;BSS
+  progent 0x01, 0x06, roundu(end,0x1000), 0, roundu(rsrvsz,0x1000),   0x1000  ;BSS
   %endif
   progent 0x02, 0x06, dyna,     sz(dyna),     sz(dyna),                0x08   ;Dynamic table
   progent 0x03, 0x04, interp,   sz(interp),   sz(interp),              0x01   ;Interp string
@@ -222,8 +223,7 @@ imports:
   %assign idx idx+1
   %endrep
  tabs.end:
- rsrv:
-  rsrv.end:
+ end:
  errs:
   %if (code-$$) % 0x1000 != 0
    %error "Code section not page aligned"

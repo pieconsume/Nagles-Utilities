@@ -4,6 +4,7 @@
  ;data / data.end ;Section, must be page aligned
 
 defs:
+ imgbase:
  %define platform win64
  %include "../../ExeUtils.asm"
  [BITS 64]
@@ -13,10 +14,11 @@ defs:
  %else
   %assign pe_type 0x0002
   %endif
+ %define rsrv roundu(end,0x1000)
  %ifndef rsrvsz
  %assign rsrvsz 0
- %define imgsz roundu((end-$$),0x1000)+rsrvsz
  %endif
+ %define imgsz roundu((end-$$),0x1000)+rsrvsz
 imports:
  %assign libs 0
  %assign exps 0

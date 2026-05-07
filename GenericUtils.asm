@@ -1,4 +1,4 @@
-;Todo - use local defines
+;Todo - switch to context local defines
 
 %ifdef genutils
  %error GenericUtils.asm included twice!
@@ -46,7 +46,6 @@
   %assign stridx stridx+2
   %endrep
  %endmacro
-
 %macro ml 1+ ;Multiline macro (horizontal code)
  %push mac_ml
  %defstr %$str %1    ;Cnv greedy parameter to string
