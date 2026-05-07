@@ -4,21 +4,18 @@
  ;data / data.end ;Section, must be page aligned
 
 defs:
- imgbase:
+ img:
  %define platform win64
  %include "../../ExeUtils.asm"
  [BITS 64]
  [DEFAULT REL]
+ [ORG 0]
+ [WARNING -label-redef-late]
  %ifdef dll
   %assign pe_type 0x2000
  %else
   %assign pe_type 0x0002
   %endif
- %define rsrv roundu(end,0x1000)
- %ifndef rsrvsz
- %assign rsrvsz 0
- %endif
- %define imgsz roundu((end-$$),0x1000)+rsrvsz
 imports:
  %assign libs 0
  %assign exps 0
@@ -50,6 +47,21 @@ imports:
   %assign exps exps+1
   %endmacro
 %macro prog_head 0
+ compat:
+  %ifndef bss.size
+   %define bss.size 0
+   %endif
+  %ifndef bss.size
+   %define stk.size 0
+   %endif
+  %define  imgsz   end
+   %define img.end $$+imgsz
+  %ifdef cpt_bss
+   compat_bssgen
+   %endif
+  %ifdef cpt_stk
+   compat_stkgen
+   %endif
  stub:
   dw 0x5A4D             ;Magic "MZ"
   times 0x3A db 0       ;Unused values
@@ -67,7 +79,7 @@ imports:
   db 0x0B,0x02,0x0E,0x1D ;Magic, link versions
   dd sz(code)            ;Size of code
   dd sz(data)            ;Size of data
-  dd rsrvsz              ;Size of reserved space
+  dd 0                   ;Size of reserved space
   dd entry               ;Entry point
   dd code                ;Base of code
   dq 0x0000000000000000  ;Base of image
@@ -95,28 +107,31 @@ imports:
   rva.end:
   optional.end:
  sections:
-  %macro sectent 4
+  %macro sectent 5
    dq %1                    ;0x00 Name
-   dd %3                    ;0x08 Virtual size
+   dd %4                    ;0x08 Virtual size
    dd %2                    ;0x0C Virtual address
-   dd sz(%2)                ;0x10 Size of raw data
+   dd %3                    ;0x10 Size of raw data
    dd %2                    ;0x14 Pointer to raw data
    dd 0                     ;0x18 What?
    dd 0                     ;0x1C What?
    dd 0                     ;0x20 What?
-   dd %4                    ;0x24 Characteristics
+   dd %5                    ;0x24 Characteristics
    %endmacro
   ;Relevant flags
    ;0x10000000 Share
    ;0x20000000 Exec
    ;0x40000000 Read
    ;0x80000000 Write
-  ;       Name,    Sect, VirtSize                 Flags
-  sectent ".text", code, roundu(sz(code),0x1000), 0x20000000
-  sectent ".data", data, roundu(sz(data),0x1000), 0xC0000000
-  sectent ".tabs", tabs, roundu(sz(tabs),0x1000), 0xC0000000
-  %if rsrvsz != 0
-  sectent ".bss",  roundu(end,0x1000), rsrvsz,    0xC0000000
+  ;       Name,    Addr, FileSize, VirtSize                 Flags
+  sectent ".text", code, sz(code), roundu(sz(code),0x1000), 0x20000000
+  sectent ".data", data, sz(data), roundu(sz(data),0x1000), 0xC0000000
+  sectent ".tabs", tabs, sz(tabs), roundu(sz(tabs),0x1000), 0xC0000000
+  %ifdef cpt_bss
+  sectent ".bss",  bss.stt,  0,    bss.size,                0xC0000000
+  %endif
+  %ifdef cpt_stk
+  sectent ".stk",  stk.stt,  0,    stk.size,                0xC0000000
   %endif
   sections.end:
   pe.end:

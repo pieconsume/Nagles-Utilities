@@ -80,6 +80,23 @@
    %assign idx idx+1
    %endrep
   %endif
+ ;Automation aliases
+ defset auto0,  rax,eax, ax,  al
+ defset auto1,  rbx,ebx, bx,  bl
+ defset auto2,  rcx,ecx, cx,  cl
+ defset auto3,  rdx,edx, dx,  dl
+ defset auto4,  rdi,edi, di,  dil
+ defset auto5,  rsi,esi, si,  sil
+ defset auto6,  rbp,ebp, bp,  bpl
+ defset auto7,  rsp,esp, sp,  spl
+ defset auto8,  r8 ,r8d ,r8w ,r8b
+ defset auto9,  r9 ,r9d ,r9w ,r9b
+ defset auto10, r10,r10d,r10w,r10b
+ defset auto11, r11,r11d,r11w,r11b
+ defset auto12, r12,r12d,r12w,r12b
+ defset auto13, r13,r13d,r13w,r13b
+ defset auto14, r14,r14d,r14w,r14b
+ defset auto15, r15,r15d,r15w,r15b
  %macro ccl 1
   ;Expects a bracketed parameter
   %defstr cxll_str0 %1
@@ -295,11 +312,12 @@
     blsr s0d,s0d    ;Clr lowest set bit
     jmp %%setsigs   ;Rpt
    %%done:
+   add rsp,0xA0
    %endmacro
   guard_en
   %endmacro
  %endif
-%macro util_compat_dbg 0
+%macro util_compat_dbg   0
  guard_st cpt_dbg
  %ifidn platform, win64
   addlib msvcr120.dll
@@ -319,7 +337,7 @@
   %endmacro
  guard_en
  %endmacro
-%macro util_compat_pf  0
+%macro util_compat_pf    0
  guard_st cpt_pf
  %ifidn platform, win64
   addlib msvcr120.dll
@@ -358,7 +376,41 @@
   %endmacro
  guard_en
  %endmacro
-%macro util_compat_all  0
+%macro util_compat_bss   0
+ guard_st cpt_bss
+ %ifndef bss.size
+ %define bss.size 0x1000
+ %macro compat_bssgen 0
+  %define bss.stt roundu((end-$$),0x1000)
+  %define bss     ($$+bss.stt)
+  %define bss.end ($$+(bss.stt+bss.size))
+  %define bss.ien (bss.stt+bss.size)
+  %define imgsz   bss.ien
+  %endmacro
+ %endif
+ guard_en
+ %endmacro
+%macro util_compat_stack 0
+ guard_st cpt_stk
+ %ifndef stk.size
+ ;Note - From testing at least 16 KiB is necessary on linux to prevent random crashes.
+ ;Note - No crashes yet with 4 KiB on windows, but 64 KiB seems to be a recommendation.
+ ;Note - Linux stack overflow crashes fail to trigger the exception handler.
+ %define stk.size 0x10000
+ %macro compat_stkgen 0
+  %ifndef bss.end
+  %define bss.end roundu(end-$$,0x1000)
+  %endif
+  %define stk.stt (roundu(bss.ien, 0x1000)+0x1000)
+  %define stk     ($$+stk.stt)
+  %define stk.end ($$+(stk.stt+stk.size))
+  %define stk.ien (stk.stt+stk.size)
+  %define imgsz   stk.ien
+  %endmacro
+ %endif
+ guard_en
+ %endmacro
+%macro util_compat_all   0
  util_compat_stdc
  util_compat_cmdl
  util_compat_threads
@@ -368,13 +420,23 @@
  util_compat_exc
  util_compat_dbg
  util_compat_pf
+ util_compat_bss
+ util_compat_stack
  %endmacro
 
 ;Necessary program macros
 ;Note - Might make sense to re-merge fn and fnr given how much shared code they now have.
 %ifidn platform, win64
  %macro prog_init 0
-  sub rsp,0x38 ;Initilize the stack
+  %ifdef cpt_stk
+   lea rsp,[stk+(stk.size-0x100)]
+   lea rax,[stk]
+   lea rbx,[rax+stk.size]
+   mov [stack_bot],rax
+   mov [stack_top],rbx
+  %else
+   sub rsp,0x38 ;Initilize the stack
+   %endif
   %ifdef cpt_stdc
    mov rax,[_iob]
    lea rbx,[rax+0x30]
@@ -476,6 +538,13 @@
    lea rax,[rsp+0x08]
    mov [argv],rax
    sub rsp,0x10
+   %endif
+  %ifdef cpt_stk
+   lea rsp,[stk+(stk.size-0x10)]
+   lea rax,[stk]
+   lea rbx,[rax+stk.size]
+   mov [stack_bot],rax
+   mov [stack_top],rbx
    %endif
   %endmacro
  %macro fn 2-4
@@ -658,22 +727,18 @@
     lea p0q,[timestamp]
     xor p1q,p1q
     ccl [gettimeofday]
-    push rbx
-    push rcx
-    mov rcx,[timestamp+0x08]
     mov rax,[timestamp+0x00]
+    mov rcx,[timestamp+0x08]
     mov ebx,1000000
     mul rbx
     add rax,rcx
-    pop rcx
-    pop rbx
     fnr abis
    %endif
   %endif
  %ifdef cpt_dbg
   fn util_dbg_printall, abis
   lea s0q,[dbg_dat]      ;Get debug data
-  lea s1q,[imgbase]      ;Get image base
+  lea s1q,[img]          ;Get image base
   mov s3d,dbgidx         ;Get debug count
   %%dbg_print:           ;Out debug data
    lea p0q,[dbg_out0] ;Get string0
@@ -760,5 +825,10 @@
    %assign idx idx+1
    %endrep
   pf_print db '[RunCount: 0x%016llX] [MicroSeconds: 0x%016llX] [%s]',10,0
+  %endif
+ %ifdef cpt_stk
+  align 0x08, db 0
+  stack_bot dq 0
+  stack_top dq 0
   %endif
  %endmacro

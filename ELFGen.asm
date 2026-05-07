@@ -4,17 +4,14 @@
  ;data / data.end ;Section, must be page aligned
 
 defs:
- imgbase:
+ img:
  %define platform linux
  %include "../../ExeUtils.asm"
  [BITS 64]
  [DEFAULT REL]
  [ORG 0]
- %define rsrv roundu(end,0x1000)
- %ifndef rsrvsz
- %assign rsrvsz 0
+ [WARNING -label-redef-late]
  %define sectidx(x) (x-sects)/0x40
- %endif
 imports:
  %assign libs  0
  %assign funcs 0
@@ -22,7 +19,7 @@ imports:
   %ifndef libinc_%1         ;Chk library already included
   %define libinc_%1         ;Ifn define it
   %defstr lib%[libs]_nme %1 ;Def library name
-  %assign libs libs+1   ;Adv library index
+  %assign libs libs+1       ;Adv library index
   %endif
   %endmacro
  %macro import 1-3
@@ -43,6 +40,15 @@ imports:
   %assign funcs funcs+1
   %endmacro
 %macro prog_head 0
+ compat:
+  %define  imgsz   end
+  %define img.end $$+imgsz
+  %ifdef cpt_bss
+   compat_bssgen
+   %endif
+  %ifdef cpt_stk
+   compat_stkgen
+   %endif
  hdr:
  elfhead:
   dd 0x464C457F         ;File identifier (0x7F, 'ELF')
@@ -82,8 +88,11 @@ imports:
   progent 0x01, 0x03, code,     sz(code),     roundu(sz(code),0x1000), 0x1000 ;Code
   progent 0x01, 0x06, data,     sz(data),     roundu(sz(data),0x1000), 0x1000 ;Data
   progent 0x01, 0x06, tabs,     sz(tabs),     roundu(sz(tabs),0x1000), 0x1000 ;Data
-  %if rsrvsz != 0
-  progent 0x01, 0x06, roundu(end,0x1000), 0, roundu(rsrvsz,0x1000),   0x1000 ;BSS
+  %ifdef cpt_bss
+  progent 0x01, 0x06, bss.stt,  0,            roundu(bss.size,0x1000), 0x1000 ;BSS
+  %endif
+  %ifdef cpt_stk
+  progent 0x01, 0x06, stk.stt,  0,            roundu(stk.size,0x1000), 0x1000 ;Stack
   %endif
   progent 0x02, 0x06, dyna,     sz(dyna),     sz(dyna),                0x08   ;Dynamic table
   progent 0x03, 0x04, interp,   sz(interp),   sz(interp),              0x01   ;Interp string
