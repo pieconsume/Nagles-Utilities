@@ -89,11 +89,23 @@ imports:
    dd %1
    dd sz(%1)
    %endmacro
-  rvaent table_expdir ;Export directory table
-  rvaent table_impdir ;Import directory table
-  times 0x0A dq 0     ;Unused entries
-  rvaent table_impadd ;Import address table
-  times 0x03 dq 0     ;Unused entries. Note - necessary for some versions of mingw gendef to work properly
+  rvaent table_expdir ;Export directory
+  rvaent table_impdir ;Import directory
+  rvaent null         ;Resource
+  rvaent null         ;Exception
+  rvaent null         ;Certificate
+  rvaent null         ;Base relocation
+  ;rvaent table_debug  ;Debug
+  rvaent null         ;Debug
+  rvaent null         ;Architecture
+  rvaent null         ;Global PTR
+  rvaent null         ;TLS
+  rvaent null         ;Load config
+  rvaent null         ;Bound import
+  rvaent table_impadd ;Import address
+  rvaent null         ;Delay import
+  rvaent null         ;CLR runtime
+  rvaent null         ;Reserved
   rva.end:
   optional.end:
  sections:
@@ -125,12 +137,6 @@ imports:
    %assign idx idx+1
    %endrep
    %endif
-  ;%ifdef cpt_bss
-  ;sectent ".bss",  bss.stt,  0,    bss.size,                0xC0000000
-  ;%endif
-  ;%ifdef cpt_stk
-  ;sectent ".stk",  stk.stt,  0,    stk.size,                0xC0000000
-  ;%endif
   sections.end:
   pe.end:
   times 0x1000-(pe.end-stub) db 0
@@ -259,6 +265,20 @@ imports:
    %endrep
    align 0x08,db 0
   idata.end:
+ debug: ;Note - Unused test code to enable CET
+  ;table_debug:
+  ; dd 0x00000000     ;0x00 Reserved
+  ; dd 0x00000000     ;0x04 Time and date
+  ; dw 0x0000         ;0x08 Major version
+  ; dw 0x0000         ;0x0A Minor version
+  ; dd 0x00000014     ;0x0C Type, IMAGE_DEBUG_TYPE_EX_DLLCHARACTERISTICS
+  ; dd sz(debug_data) ;0x10 Data size
+  ; dd 0x00000000     ;0x14 Address
+  ; dd debug_data     ;0x18 File offset
+  ; table_debug.end:
+  ;debug_data:
+  ; dq 0x0040
+  ; debug_data.end:
  tabs.end:
  end:
  %endmacro

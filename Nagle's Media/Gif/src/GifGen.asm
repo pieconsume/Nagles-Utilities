@@ -62,8 +62,6 @@ img:
   %rep wdt*hgt*2
   getrand
   px rand & 0x07
-  ;%assign guh rand & 0x07
-  ;%warning guh
   %endrep
  lzwgen:
   %assign bpp clr    ;Bits per pixel

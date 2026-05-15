@@ -4,8 +4,6 @@ disksz=$((0x20000)) #Disk sectors
 partsz=$((0x18000)) #FAT  sectors
 fatspc=$((0x01))    #FAT  sectors per cluster
 
-./../UpdateFat32
-
 #Generate the partitions
 nasm ../MBR.asm  -dsecsz=$secsz -ddisksects=$disksz -dpartsz=$partsz -dfatsecs=$fatsecs -o builds/Fat32_MBR  #Bootsector
 nasm ../GPTA.asm -dsecsz=$secsz -ddisksects=$disksz -dpartsz=$partsz -dfatsecs=$fatsecs -o builds/Fat32_GPTA #GUID Partition Table       (GPTA)

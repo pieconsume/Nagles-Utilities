@@ -1,5 +1,3 @@
-;Todo - switch to context local defines
-
 defs:
  %include "../../CompatGen.asm"
  %assign strcnt 0
@@ -16,6 +14,7 @@ defs:
   %endmacro
 imports:
  util_compat_all
+ util_func_all
  util_compat_section bss, 0x1000
  %define pf_allfuncs
  %define dbg_allfuncs
@@ -32,7 +31,7 @@ imports:
   import abort,   msvcr120.dll
  prog_head
 code:
- fn entry,      prog, 0x10, line
+ fn entry,      prog, 0x10, line, nopf
   debugprint "works!"
   call test_abic
   call test_abis
@@ -47,7 +46,7 @@ code:
   call test_sock
   call test_dbg
   call test_pf
-  call test_exc
+  call test_exc0
  fn test_abic,  abic, 0x10, line
   debugprint "ABIC works"
   fnr abic
@@ -62,11 +61,11 @@ code:
   fnr abic
  fn test_map,   abic, 0x10, line
   debugprint "Program map: "
-  ml lea p2q,[img]  : lea p3q,[img.end]  : debugprint "Image: [0x%016llX-0x%016llX]"
-  ml lea p2q,[code] : lea p3q,[code.end] : debugprint "Code:  [0x%016llX-0x%016llX]"
-  ml lea p2q,[data] : lea p3q,[data.end] : debugprint "Data:  [0x%016llX-0x%016llX]"
-  ml lea p2q,[bss]  : lea p3q,[bss.end]  : debugprint "Bss:   [0x%016llX-0x%016llX]"
-  ml lea p2q,[stk]  : lea p3q,[stk.end]  : debugprint "Stack: [0x%016llX-0x%016llX]"
+  ml lea p2q,[img]    : lea p3q,[img.end]     : debugprint " Image:  [0x%016llX-0x%016llX]"
+  ml lea p2q,[code]   : lea p3q,[code.end]    : debugprint " Code:   [0x%016llX-0x%016llX]"
+  ml lea p2q,[data]   : lea p3q,[data.end]    : debugprint " Data:   [0x%016llX-0x%016llX]"
+  ml lea p2q,[estack] : lea p3q,[estack.end]  : debugprint " Estack: [0x%016llX-0x%016llX]"
+  ml lea p2q,[bss]    : lea p3q,[bss.end]     : debugprint " Bss:    [0x%016llX-0x%016llX]"
   fnr abic
  fn test_std,   abic, 0x10, line
   ml mov p0q,[c_stdout] : lea p1q,[stdoutstr] : lea p2q,[platstr] : ccl [fprintf]
@@ -112,25 +111,25 @@ code:
   debugprint "Printing profiling data"
   pf_wa
   fnr abic
- fn test_exc,   abic, 0x10, line
-  xor rsp,rsp
-  mov eax,0
+ fn test_exc0,  abic, 0x10, line
+  call test_exc1
+  fnr abic
+ fn test_exc1,  abic, 0x10, line
+  call test_exc2
+  fnr abic
+ fn test_exc2,  abic, 0x10, line
+  call test_exc3
+  fnr abic
+ fn test_exc3,  abic, 0x10, line
+  mov r8,0xDEAD0001
+  mov r9,0xDEAD0002
+  xor eax,eax
   div eax
   fnr abic
- fn test_exch,  leaf, 0x10, line
-  %define idx 0
-  %rep 0x10
-   mov [dbg_frame+(idx*0x08)],auto%[idx]q
-   %assign idx idx+1
-   %endrep
-  lea rsp,[bss.end-0x100]
-  debugprint "Register dump:"
-  %define idx 0
-  %rep 0x10
-   ml mov p2q,[dbg_frame+(idx*8)] : debugprint [0x%[%]016llX] [auto%[idx]q]
-   %assign idx idx+1
-   %endrep
-  test_exc_nostk:
+ fn test_exch,  leaf, 0x10, line, nopf
+  lea rsp,[estack.end-0x100] ;Note - Custom stack is automatically set on linux, but windows VEH does not support that
+  dbg_onexc                  ;Note - Prints context registers and unwinds stack
+  xor p0d,p0d
   ccl [exit]
  utilfunc:
   util_func_std
@@ -157,5 +156,4 @@ data:
   util_data_compat
  align 0x1000, db 0
  data.end:
-
 prog_end

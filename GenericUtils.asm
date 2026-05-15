@@ -1,10 +1,97 @@
-;Todo - switch to context local defines
+;Todo - Find and note all non-local defines.
+;Todo - Maybe certain things should be macro packages?
 
 %ifdef genutils
  %error GenericUtils.asm included twice!
  %endif
 %define genutils
 
+;Generates pseudo-instructions for explicit operand sizes
+;Example: movmb [var],0xFF
+%macro genmx 1
+ %macro %[%1]mb 2-3 %1
+  %3 byte %1,byte %2
+  %endmacro
+ %macro %[%1]mw 2-3 %1
+  %3 word %1,word %2
+  %endmacro
+ %macro %[%1]md 2-3 %1
+  %3 dword %1,dword %2
+  %endmacro
+ %macro %[%1]mq 2-3 %1
+  %3 qword %1,qword %2
+  %endmacro
+ %endmacro
+genmx mov
+genmx add
+genmx sub
+genmx cmp
+
+;Mem-mem pseudo-instructions
+;Example: swmd [dst],[src],eax
+%macro swmb 3
+ movmb %3,%2
+ movmb %1,%3
+ %endmacro
+%macro swmw 3
+ movmw %3,%2
+ movmw %1,%3
+ %endmacro
+%macro swmd 3
+ movmd %3,%2
+ movmd %1,%3
+ %endmacro
+%macro swmq 3
+ movmq %3,%2
+ movmq %1,%3
+ %endmacro
+
+;Note - Should be able to generate these with a macro similar to genmx
+;Cmp then jump pseudo-instructions
+;Example: cmpje eax,ebx,label
+%macro cmpje 3
+ cmp %1,%2
+ je %3
+ %endmacro
+%macro cmpjne 3
+ cmp %1,%2
+ jne %3
+ %endmacro
+%macro cmpjz 3
+ cmp %1,%2
+ jz %3
+ %endmacro
+%macro cmpjnz 3
+ cmp %1,%2
+ jnz %3
+ %endmacro
+%macro cmpjg 3
+ cmp %1,%2
+ jg %3
+ %endmacro
+%macro cmpjge 3
+ cmp %1,%2
+ jge %3
+ %endmacro
+%macro cmpjl 3
+ cmp %1,%2
+ jl %3
+ %endmacro
+%macro cmpjle 3
+ cmp %1,%2
+ jle %3
+ %endmacro
+%macro tstjz 3
+ test %1,%2
+ jz %3
+ %endmacro
+%macro tstjnz 3
+ test %1,%2
+ jnz %3
+ %endmacro
+
+null:
+null.end: ;For passing to sz()
 %define exp(x) x ;Force parameter expansion
 %define roundd(x, y) ((x) - ((x) % (y)))
 %define roundu(x, y) ((x) - ((x) % (y)) + ((y) * ((x) % (y) != 0)))
@@ -14,24 +101,24 @@
 %defstr hexdef 0123456789ABCDEF
 %macro hexprint 1-3.nolist
  ;Todo - can be simplified since nasm 3.0 added %hex()
- %assign hex0 ((%1>>0x00) % 16)
- %assign hex1 ((%1>>0x04) % 16)
- %assign hex2 ((%1>>0x08) % 16)
- %assign hex3 ((%1>>0x0C) % 16)
- %assign hex4 ((%1>>0x10) % 16)
- %assign hex5 ((%1>>0x14) % 16)
- %assign hex6 ((%1>>0x18) % 16)
- %assign hex7 ((%1>>0x1C) % 16)
- %substr dig0 hexdef hex0+1
- %substr dig1 hexdef hex1+1
- %substr dig2 hexdef hex2+1
- %substr dig3 hexdef hex3+1
- %substr dig4 hexdef hex4+1
- %substr dig5 hexdef hex5+1
- %substr dig6 hexdef hex6+1
- %substr dig7 hexdef hex7+1
- %strcat final "0x" dig7 dig6 dig5 dig4 dig3 dig2 dig1 dig0
- %warning %2 final %3
+ %assign %%hex0 ((%1>>0x00) % 16)
+ %assign %%hex1 ((%1>>0x04) % 16)
+ %assign %%hex2 ((%1>>0x08) % 16)
+ %assign %%hex3 ((%1>>0x0C) % 16)
+ %assign %%hex4 ((%1>>0x10) % 16)
+ %assign %%hex5 ((%1>>0x14) % 16)
+ %assign %%hex6 ((%1>>0x18) % 16)
+ %assign %%hex7 ((%1>>0x1C) % 16)
+ %substr %%dig0 hexdef %%hex0+1
+ %substr %%dig1 hexdef %%hex1+1
+ %substr %%dig2 hexdef %%hex2+1
+ %substr %%dig3 hexdef %%hex3+1
+ %substr %%dig4 hexdef %%hex4+1
+ %substr %%dig5 hexdef %%hex5+1
+ %substr %%dig6 hexdef %%hex6+1
+ %substr %%dig7 hexdef %%hex7+1
+ %strcat %%final "0x" %%dig7 %%dig6 %%dig5 %%dig4 %%dig3 %%dig2 %%dig1 %%dig0
+ %warning %2 %%final %3
  %endmacro
 
 %macro dh 1  ;Output raw MSB hex
@@ -74,16 +161,16 @@
 ;XORShift randgen
 %assign randseed __?POSIX_TIME?__
 %macro getrand 0-1
- %assign temp     randseed
- %assign temp     temp<<21
- %assign randseed randseed^temp
- %assign temp     randseed
- %assign temp     temp>>35
- %assign randseed randseed^temp
- %assign temp     randseed
- %assign temp     temp<<4
- %assign randseed randseed^temp
- %assign rand randseed
+ %assign %%temp   randseed
+ %assign %%temp   %%temp<<21
+ %assign randseed randseed^%%temp
+ %assign %%temp   randseed
+ %assign %%temp   %%temp>>35
+ %assign randseed randseed^%%temp
+ %assign %%temp   randseed
+ %assign %%temp   %%temp<<4
+ %assign randseed randseed^%%temp
+ %assign rand     randseed
  %if %0 == 1
  %assign %1 rand
  %endif
@@ -117,68 +204,68 @@
  %endmacro
 
 ;Generate CRC32 table
-%define idx 0
-%rep 0x100
- %assign char idx
- %assign val  0
+%push crc_tabgen
+ %define idx 0
+ %rep 0x100
+ %assign %$char idx
+ %assign %$val  0
  %rep 0x08
-  %assign bit ((char^val) & 0x01)    ;Get bit
-  %assign val val>>1         ;Shift val
-  %if bit == 1
-  %assign val val^0xEDB88320 ;If bit val^=poly
+  %assign %$bit ((%$char^%$val) & 0x01) ;Get bit
+  %assign %$val %$val>>1                ;Shift val
+  %if %$bit == 1
+  %assign %$val %$val^0xEDB88320        ;If bit val^=poly
   %endif
-  %assign char char>>1       ;Advance char
+  %assign %$char %$char>>1              ;Advance char
   %endrep
- %assign crc32tab%[idx] val
+ %assign crc32tab%[idx] %$val
  %assign idx idx+1
  %endrep
+ %pop crc_tabgen
 
 ;Create and accumulate crc32
 %macro crc_mke 1
  %assign crc_%1 0xFFFFFFFF
  %endmacro
 %macro crc_ab 2
- %assign char %2                   ;Set char
- %assign char   (char^crc_%1)&0xFF ;Xor with accumlator and get index
- %assign val    crc32tab%[char]    ;Get table index
- %assign crc_%1 crc_%1>>8          ;Shr acc
- %assign crc_%1 crc_%1^val         ;Xor to get finl
+ %assign %%char %2                     ;Set char
+ %assign %%char   (%%char^crc_%1)&0xFF ;Xor with accumlator and get index
+ %assign %%val    crc32tab%[%%char]      ;Get table index
+ %assign crc_%1 crc_%1>>8              ;Shr acc
+ %assign crc_%1 crc_%1^(%%val)           ;Xor to get finl
  %endmacro
 %macro crc_aw 2
- %assign byte0 (%2>>0x00)&0xFF
- %assign byte1 (%2>>0x08)&0xFF
- crc_ab %1, byte0
- crc_ab %1, byte1
+ %assign %%byte0 (%2>>0x00)&0xFF
+ %assign %%byte1 (%2>>0x08)&0xFF
+ crc_ab %1, %%byte0
+ crc_ab %1, %%byte1
  %endmacro
 %macro crc_ad 2
- %assign byte0 (%2>>0x00)&0xFF
- %assign byte1 (%2>>0x08)&0xFF
- %assign byte2 (%2>>0x10)&0xFF
- %assign byte3 (%2>>0x18)&0xFF
- crc_ab %1, byte0
- crc_ab %1, byte1
- crc_ab %1, byte2
- crc_ab %1, byte3
+ %assign %%byte0 (%2>>0x00)&0xFF
+ %assign %%byte1 (%2>>0x08)&0xFF
+ %assign %%byte2 (%2>>0x10)&0xFF
+ %assign %%byte3 (%2>>0x18)&0xFF
+ crc_ab %1, %%byte0
+ crc_ab %1, %%byte1
+ crc_ab %1, %%byte2
+ crc_ab %1, %%byte3
  %endmacro
 %macro crc_aq 2
- %assign byte0 (%2>>0x00)&0xFF
- %assign byte1 (%2>>0x08)&0xFF
- %assign byte2 (%2>>0x10)&0xFF
- %assign byte3 (%2>>0x18)&0xFF
- %assign byte4 (%2>>0x20)&0xFF
- %assign byte5 (%2>>0x28)&0xFF
- %assign byte6 (%2>>0x30)&0xFF
- %assign byte7 (%2>>0x38)&0xFF
- crc_ab %1, byte0
- crc_ab %1, byte1
- crc_ab %1, byte2
- crc_ab %1, byte3
- crc_ab %1, byte4
- crc_ab %1, byte5
- crc_ab %1, byte6
- crc_ab %1, byte7
- %endmacro
-%macro crc_ah 2
+ %assign %%byte0 (%2>>0x00)&0xFF
+ %assign %%byte1 (%2>>0x08)&0xFF
+ %assign %%byte2 (%2>>0x10)&0xFF
+ %assign %%byte3 (%2>>0x18)&0xFF
+ %assign %%byte4 (%2>>0x20)&0xFF
+ %assign %%byte5 (%2>>0x28)&0xFF
+ %assign %%byte6 (%2>>0x30)&0xFF
+ %assign %%byte7 (%2>>0x38)&0xFF
+ crc_ab %1, %%byte0
+ crc_ab %1, %%byte1
+ crc_ab %1, %%byte2
+ crc_ab %1, %%byte3
+ crc_ab %1, %%byte4
+ crc_ab %1, %%byte5
+ crc_ab %1, %%byte6
+ crc_ab %1, %%byte7
  %endmacro
 %macro crc_fin 1
  %assign crc_%1 ~crc_%1
@@ -215,12 +302,11 @@
  %assign ops 0
  %endmacro
 %macro pass_fin 0.nolist
- %define temp 0
+ %define %%temp 0
  %rep ops
-  %deftok instr optable%[temp]
-  ;%warning instr
-  instr
-  %assign temp temp+1
+  %deftok %%instr optable%[%%temp]
+  %%instr
+  %assign %%temp %%temp+1
   %endrep
  %assign ops 0
  %endmacro
