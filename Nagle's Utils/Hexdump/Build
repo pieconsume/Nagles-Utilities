@@ -1,0 +1,5 @@
+nasm "src/nghd.asm" -dplatform=win64 -w-label-redef-late -o "builds/nghd.exe"
+nasm "src/nghd.asm" -dplatform=linux -w-label-redef-late -o "builds/nghd"
+chmod +x "builds/nghd"
+wine "builds/nghd.exe" -infile,"src/testfile" -o,"builds/outfile" -c,0x1000 -l,0x08 -nasm,0x01
+./"builds/nghd"        -infile,"src/testfile" -o,"builds/outfile" -c,0x1000 -l,0x08 -nasm,0x01
