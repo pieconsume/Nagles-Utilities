@@ -120,6 +120,10 @@ null.end: ;For passing to sz()
  %strcat %%final "0x" %%dig7 %%dig6 %%dig5 %%dig4 %%dig3 %%dig2 %%dig1 %%dig0
  %warning %2 %%final %3
  %endmacro
+%macro getaddr 1.nolist
+ %assign %%addr $-$$
+ hexprint %%addr, %1
+ %endmacro
 
 %macro dh 1  ;Output raw MSB hex
  %defstr hexstr %1
@@ -309,6 +313,18 @@ null.end: ;For passing to sz()
   %assign %%temp %%temp+1
   %endrep
  %assign ops 0
+ %endmacro
+
+;Generates a string table from defines
+;Names are str_tabname%[idx]
+%macro genstrtab 2
+ ;%1, tabname
+ ;%2, count
+ %assign idx 0
+ %rep %2
+  str_%1%[idx] db %1%[idx]
+  %assign idx idx+1
+  %endrep
  %endmacro
 
 ;Testing
