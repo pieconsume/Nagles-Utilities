@@ -1,4 +1,5 @@
 ;Todo - Find and note all non-local defines.
+;Todo - Look into macro for better string table generation.
 
 ;Definitions
  %include "../../GenericUtils.asm"
@@ -247,9 +248,13 @@
  guard_st cpt_stdc
  addlib msvcr120.dll
  import _iob,       msvcr120.dll, forced ;Array that contains stdin/out/err
- import _get_errno, msvcr120.dll, forced ;Function to get errno
+ import _get_errno, msvcr120.dll         ;Function to get errno
+ import _set_errno, msvcr120.dll         ;Function to set errno
  %macro geterrno 0
   ccl [_get_errno]
+  %endmacro
+ %macro seterrno 0
+  ccl [_set_errno]
   %endmacro
  guard_en
  %endmacro
@@ -409,7 +414,11 @@
  import __errno_location
  %macro geterrno 0
   mov r0q,[c_errptr]
-  mov r0q,[r0q]
+  mov r0d,[r0q]
+  %endmacro
+ %macro seterrno 0
+  mov r0q,[c_errptr]
+  mov [r0q],p0d
   %endmacro
  guard_en
  %endmacro
@@ -801,8 +810,9 @@
 ;Code/data
 %macro util_func_std    0 ;Misc utility functions
  ;Todo - Have strict 0x40 stack alignment on windows. Maybe add some debug info optionally pushed to stack for both windows/linux.
- util_push_abi:
-  mov  rax,[rsp]
+ ;Todo - push_abi and pop_abi were completely broken. Did a quick fix but need to iron them out.
+ fn util_push_abi, leaf, 0x10
+  mov rax,[rsp]
   %ifidn platform, win64
   push h1q
   push h0q
@@ -815,8 +825,7 @@
   push s0q
   push rax
   ret
- util_pop_abi:
-  pop s0q
+ fn util_pop_abi,  leaf, 0x10
   pop s0q
   pop s1q
   pop s2q
@@ -827,8 +836,9 @@
   pop h0q
   pop h1q
   %endif
+  add rsp,0x08
   ret
- util_push:
+ fn util_push,     leaf, 0x10
   xchg rax,[rsp]
   push rbx
   push rcx
@@ -847,7 +857,7 @@
   push rax
   mov rax,[rsp+0x78]
   ret
- util_pop:
+ fn util_pop,      leaf, 0x10
   pop r15
   pop r14
   pop r13
@@ -864,26 +874,6 @@
   pop rbx
   pop rax
   ret
- fn util_printr0q, safe
-  lea p0q,[print_r64]
-  mov p1q,r0q
-  ccl [printf]
-  fnr safe
- fn util_printr0d, safe
-  lea p0q,[print_r32]
-  mov p1d,r0d
-  ccl [printf]
-  fnr safe
- fn util_printr0w, safe
-  lea p0q,[print_r16]
-  movzx p1d,r0w
-  ccl [printf]
-  fnr safe
- fn util_printr0b, safe
-  lea p0q,[print_r08]
-  movzx p1d,r0b
-  ccl [printf]
-  fnr safe
  %endmacro
 %macro util_func_compat 0 ;Cross-platform functions
  %ifidn platform, win64
