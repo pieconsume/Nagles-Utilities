@@ -3,3 +3,9 @@ nasm "src/Compat.asm" -dplatform=linux -w-label-redef-late -o "builds/CompatELF"
 wine "builds/CompatPE.exe" testArg
 chmod +x "builds/CompatELF"
 ./"builds/CompatELF" testArg
+
+nasm "src/Template.asm" -dplatform=win64 -w-label-redef-late -o "builds/TemplatePE.exe"
+nasm "src/Template.asm" -dplatform=linux -w-label-redef-late -o "builds/TemplateELF"
+wine "builds/TemplatePE.exe"
+chmod +x "builds/TemplateELF"
+./"builds/TemplateELF"

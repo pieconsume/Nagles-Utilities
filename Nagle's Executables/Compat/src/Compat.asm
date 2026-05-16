@@ -1,3 +1,6 @@
+;Todo - Switch to dbg_printf from ExeUtils.
+%define platstr_2 "[",%str(platform),"] " ;Use this for the platform
+
 defs:
  %include "../../CompatGen.asm"
  %assign strcnt 0
@@ -28,7 +31,6 @@ imports:
   import fprintf, msvcr120.dll
   import printf,  msvcr120.dll
   import exit,    msvcr120.dll
-  import abort,   msvcr120.dll
  prog_head
 code:
  fn entry,      prog, 0x10, line, nopf
@@ -137,8 +139,6 @@ code:
  align 0x1000, db 0
  code.end:
 data:
- dbg_frame times 0x10 dq 0
- rsptest dq 0
  thr_done dd 0
  debugstr:
   %defstr plat platform
